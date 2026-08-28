@@ -1,13 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-  LayoutDashboard,
   Briefcase,
-  BarChart2,
-  Map,
-  FolderKanban,
-  Link2,
-  Database,
-  Settings,
   Star,
   Bookmark,
   Code2,
@@ -16,112 +9,22 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
-
-/* ---------------------------------------------
-   Small shared primitives
---------------------------------------------- */
-
-function ClayCard({ className = "", children }) {
-  return (
-    <div
-      className={`rounded-[28px] bg-white border border-white shadow-[0_10px_30px_-10px_rgba(76,29,149,0.12)] ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function CircularProgress({ percentage, size = 64, stroke = 7, trackColor, barColor }) {
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - percentage / 100);
-  return (
-    <svg width={size} height={size} className="-rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={trackColor}
-        strokeWidth={stroke}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={barColor}
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-      />
-    </svg>
-  );
-}
-
-/* ---------------------------------------------
-   Sidebar
---------------------------------------------- */
-
-function Sidebar() {
-  const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", active: true },
-    { icon: Briefcase, label: "Jobs" },
-    { icon: BarChart2, label: "Skill Gap" },
-    { icon: Map, label: "Roadmap" },
-    { icon: FolderKanban, label: "Projects" },
-    { icon: Link2, label: "Connections" },
-    { icon: Database, label: "Storage", badge: "New" },
-    { icon: Settings, label: "Settings" },
-  ];
-
-  return (
-    <aside className="hidden lg:flex w-56 shrink-0 flex-col bg-white/70 px-4 py-6">
-      <div className="flex items-center gap-2 px-2 mb-8">
-        <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-bold">
-          DS
-        </div>
-        <span className="font-semibold text-slate-800 tracking-tight">DevSphere</span>
-      </div>
-
-      <nav className="flex flex-col gap-1">
-        {navItems.map(({ icon: Icon, label, active, badge }) => (
-          <button
-            key={label}
-            className={`group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${
-              active
-                ? "bg-indigo-50 text-indigo-600"
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-            }`}
-          >
-            <Icon size={17} strokeWidth={2.1} />
-            <span className="flex-1 text-left">{label}</span>
-            {badge && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-600">
-                {badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </nav>
-    </aside>
-  );
-}
+import { ClayCard, CircularProgress } from "../components/ui";
+import { getDashboardData } from "../services/dashboardService";
 
 /* ---------------------------------------------
    Top stat cards
 --------------------------------------------- */
 
-function RoleReadinessCard() {
+function RoleReadinessCard({ role, percentage }) {
   return (
     <ClayCard className="bg-gradient-to-br from-violet-500 to-purple-600 border-none text-white p-5 flex flex-col justify-between shadow-[0_15px_30px_-10px_rgba(124,58,237,0.45)]">
       <div className="flex items-start justify-between">
         <span className="text-[13px] font-medium text-violet-100">Role Readiness</span>
-        <CircularProgress percentage={76} size={40} stroke={4} trackColor="rgba(255,255,255,0.25)" barColor="#ffffff" />
+        <CircularProgress percentage={percentage} size={40} stroke={4} trackColor="rgba(255,255,255,0.25)" barColor="#ffffff" />
       </div>
       <div className="mt-3">
-        <p className="text-lg font-semibold leading-tight">Full-Stack<br />Developer</p>
+        <p className="text-lg font-semibold leading-tight">{role}</p>
         <p className="text-[12px] text-violet-100 mt-1">You are almost there!</p>
       </div>
       <button className="mt-4 text-[12px] font-semibold text-white/95 flex items-center gap-1 self-start">
@@ -131,7 +34,7 @@ function RoleReadinessCard() {
   );
 }
 
-function BestMatchJobsCard() {
+function BestMatchJobsCard({ count }) {
   return (
     <ClayCard className="bg-emerald-50 border-none p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between">
@@ -143,14 +46,14 @@ function BestMatchJobsCard() {
         </span>
       </div>
       <div className="mt-3">
-        <p className="text-3xl font-bold text-slate-800">12</p>
+        <p className="text-3xl font-bold text-slate-800">{count}</p>
         <p className="text-[12px] text-slate-500 mt-0.5">Best Match Jobs</p>
       </div>
     </ClayCard>
   );
 }
 
-function SkillsAnalysedCard() {
+function SkillsAnalysedCard({ count }) {
   return (
     <ClayCard className="bg-violet-50 border-none p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between">
@@ -162,19 +65,19 @@ function SkillsAnalysedCard() {
         </span>
       </div>
       <div className="mt-3">
-        <p className="text-3xl font-bold text-slate-800">24</p>
+        <p className="text-3xl font-bold text-slate-800">{count}</p>
         <p className="text-[12px] text-slate-500 mt-0.5">Skills Analysed</p>
       </div>
     </ClayCard>
   );
 }
 
-function ProfileStrengthCard() {
+function ProfileStrengthCard({ percentage }) {
   return (
     <ClayCard className="bg-amber-50 border-none p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between">
         <span className="text-[13px] font-medium text-amber-700">Profile Strength</span>
-        <CircularProgress percentage={82} size={40} stroke={4} trackColor="#fde9b8" barColor="#f5a524" />
+        <CircularProgress percentage={percentage} size={40} stroke={4} trackColor="#fde9b8" barColor="#f5a524" />
       </div>
       <div className="mt-3">
         <p className="text-sm font-semibold text-slate-700">Great job! Keep going.</p>
@@ -204,7 +107,7 @@ function SkillPill({ label, tone }) {
   );
 }
 
-function SkillOverviewCard() {
+function SkillOverviewCard({ skillOverview }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-4">
@@ -216,27 +119,25 @@ function SkillOverviewCard() {
         <div>
           <p className="text-[11px] font-medium text-slate-400 mb-1.5">Strong Skills</p>
           <div className="flex flex-wrap gap-2">
-            <SkillPill label="React" tone="green" />
-            <SkillPill label="JavaScript" tone="green" />
-            <SkillPill label="Git" tone="green" />
-            <SkillPill label="HTML/CSS" tone="green" />
+            {skillOverview.strong.map((s) => (
+              <SkillPill key={s} label={s} tone="green" />
+            ))}
           </div>
         </div>
         <div>
           <p className="text-[11px] font-medium text-slate-400 mb-1.5">Developing Skills</p>
           <div className="flex flex-wrap gap-2">
-            <SkillPill label="Node.js" tone="amber" />
-            <SkillPill label="SQL" tone="amber" />
-            <SkillPill label="Express" tone="amber" />
+            {skillOverview.developing.map((s) => (
+              <SkillPill key={s} label={s} tone="amber" />
+            ))}
           </div>
         </div>
         <div>
           <p className="text-[11px] font-medium text-slate-400 mb-1.5">Needs Improvement</p>
           <div className="flex flex-wrap gap-2">
-            <SkillPill label="Docker" tone="red" />
-            <SkillPill label="AWS" tone="red" />
-            <SkillPill label="Testing" tone="red" />
-            <SkillPill label="TypeScript" tone="red" />
+            {skillOverview.needsImprovement.map((s) => (
+              <SkillPill key={s} label={s} tone="red" />
+            ))}
           </div>
         </div>
       </div>
@@ -252,12 +153,12 @@ function SkillOverviewCard() {
    Top recommended jobs
 --------------------------------------------- */
 
-function JobRow({ title, company, location, match, iconBg, iconColor }) {
+function JobRow({ title, company, location, match }) {
   const matchColor = match >= 90 ? "text-emerald-500" : match >= 80 ? "text-amber-500" : "text-rose-500";
   return (
     <div className="flex items-center gap-3 py-2.5">
-      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${iconBg}`}>
-        <Briefcase size={16} className={iconColor} />
+      <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-slate-50">
+        <Briefcase size={16} className="text-slate-400" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-slate-800 truncate">{title}</p>
@@ -272,7 +173,7 @@ function JobRow({ title, company, location, match, iconBg, iconColor }) {
   );
 }
 
-function TopJobsCard() {
+function TopJobsCard({ topJobs }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-2">
@@ -281,9 +182,9 @@ function TopJobsCard() {
       </div>
 
       <div className="divide-y divide-slate-100">
-        <JobRow title="Frontend Developer" company="ABC Technologies" location="Bangalore" match={91} iconBg="bg-rose-50" iconColor="text-rose-400" />
-        <JobRow title="React Developer" company="XYZ Solutions" location="Bangalore" match={87} iconBg="bg-amber-50" iconColor="text-amber-400" />
-        <JobRow title="Full Stack Developer" company="InnovateX" location="Bangalore" match={79} iconBg="bg-orange-50" iconColor="text-orange-400" />
+        {topJobs.map((job) => (
+          <JobRow key={job.title + job.company} {...job} />
+        ))}
       </div>
 
       <button className="mt-4 w-full py-2.5 rounded-2xl bg-rose-400 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(251,113,133,0.6)]">
@@ -297,21 +198,28 @@ function TopJobsCard() {
    Skill gaps
 --------------------------------------------- */
 
-function GapBar({ label, value, color, priority, priorityColor }) {
+const priorityColors = {
+  "High Priority": { bar: "#fb7185", text: "text-rose-500" },
+  "Medium Priority": { bar: "#a855f7", text: "text-amber-500" },
+  "Low Priority": { bar: "#34d399", text: "text-emerald-500" },
+};
+
+function GapBar({ label, value, priority }) {
+  const colors = priorityColors[priority] || priorityColors["Medium Priority"];
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-[12.5px] font-medium text-slate-600">{label}</span>
-        <span className={`text-[10.5px] font-semibold ${priorityColor}`}>{priority}</span>
+        <span className={`text-[10.5px] font-semibold ${colors.text}`}>{priority}</span>
       </div>
       <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
+        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: colors.bar }} />
       </div>
     </div>
   );
 }
 
-function SkillGapsCard() {
+function SkillGapsCard({ skillGaps }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-4">
@@ -320,11 +228,9 @@ function SkillGapsCard() {
       </div>
 
       <div className="space-y-3.5">
-        <GapBar label="Docker" value={30} color="#fb7185" priority="High Priority" priorityColor="text-rose-500" />
-        <GapBar label="AWS" value={22} color="#f5a524" priority="High Priority" priorityColor="text-rose-500" />
-        <GapBar label="TypeScript" value={55} color="#a855f7" priority="Medium Priority" priorityColor="text-amber-500" />
-        <GapBar label="Testing" value={45} color="#22d3ee" priority="Medium Priority" priorityColor="text-amber-500" />
-        <GapBar label="System Design" value={68} color="#34d399" priority="Low Priority" priorityColor="text-emerald-500" />
+        {skillGaps.map((gap) => (
+          <GapBar key={gap.label} {...gap} />
+        ))}
       </div>
 
       <button className="mt-5 w-full py-2.5 rounded-2xl bg-cyan-400 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(34,211,238,0.55)]">
@@ -349,7 +255,7 @@ function RecoRow({ text }) {
   );
 }
 
-function AIRecommendationsCard() {
+function AIRecommendationsCard({ aiRecommendations }) {
   return (
     <ClayCard className="bg-rose-50 border-none p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -358,9 +264,9 @@ function AIRecommendationsCard() {
       </div>
 
       <div className="space-y-2.5">
-        <RecoRow text="Learn Docker – High demand in 34% of Full-Stack Developer jobs." />
-        <RecoRow text="Build a deployment project – Add DevOps & cloud experience." />
-        <RecoRow text="Solve 10 more DSA problems – Strengthen your problem solving." />
+        {aiRecommendations.map((text) => (
+          <RecoRow key={text} text={text} />
+        ))}
       </div>
 
       <button className="mt-4 text-[12.5px] font-semibold text-rose-500 flex items-center gap-1">
@@ -374,10 +280,10 @@ function AIRecommendationsCard() {
    Recent projects
 --------------------------------------------- */
 
-function ProjectRow({ name, stack, updated, dotColor }) {
+function ProjectRow({ name, stack, updated }) {
   return (
     <div className="flex items-center gap-3 py-2.5">
-      <div className={`w-9 h-9 rounded-2xl ${dotColor} shrink-0`} />
+      <div className="w-9 h-9 rounded-2xl bg-slate-100 shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-slate-800 truncate">{name}</p>
         <p className="text-[11.5px] text-slate-400 truncate">{stack}</p>
@@ -390,7 +296,7 @@ function ProjectRow({ name, stack, updated, dotColor }) {
   );
 }
 
-function RecentProjectsCard() {
+function RecentProjectsCard({ recentProjects }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-2">
@@ -398,8 +304,9 @@ function RecentProjectsCard() {
         <button className="text-[12px] font-semibold text-indigo-500">View All</button>
       </div>
       <div className="divide-y divide-slate-100">
-        <ProjectRow name="E-Commerce Web App" stack="MERN Stack · Docker · CI/CD" updated="Updated 2 days ago" dotColor="bg-emerald-100" />
-        <ProjectRow name="Task Management System" stack="MERN Stack · JWT · MongoDB" updated="Updated 1 week ago" dotColor="bg-sky-100" />
+        {recentProjects.map((project) => (
+          <ProjectRow key={project.name} {...project} />
+        ))}
       </div>
     </ClayCard>
   );
@@ -409,7 +316,15 @@ function RecentProjectsCard() {
    Connected profiles footer
 --------------------------------------------- */
 
-function ConnectedBadge({ icon: Icon, label, iconBg, iconColor }) {
+const profileIconMap = {
+  GitHub: { icon: FaGithub, iconBg: "bg-slate-100", iconColor: "text-slate-700" },
+  LeetCode: { icon: Code2, iconBg: "bg-orange-50", iconColor: "text-orange-500" },
+  GeeksforGeeks: { icon: Code2, iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
+  LinkedIn: { icon: FaLinkedin, iconBg: "bg-sky-50", iconColor: "text-sky-600" },
+};
+
+function ConnectedBadge({ label }) {
+  const { icon: Icon, iconBg, iconColor } = profileIconMap[label] || {};
   return (
     <div className="flex items-center gap-2">
       <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${iconBg}`}>
@@ -425,15 +340,14 @@ function ConnectedBadge({ icon: Icon, label, iconBg, iconColor }) {
   );
 }
 
-function ConnectedProfilesBar() {
+function ConnectedProfilesBar({ connectedProfiles }) {
   return (
     <ClayCard className="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
       <div className="flex flex-wrap items-center gap-6">
         <span className="text-[13px] font-semibold text-slate-500 hidden sm:inline">Connected Profiles</span>
-        <ConnectedBadge icon={FaGithub} label="GitHub" iconBg="bg-slate-100" iconColor="text-slate-700" />
-        <ConnectedBadge icon={Code2} label="LeetCode" iconBg="bg-orange-50" iconColor="text-orange-500" />
-        <ConnectedBadge icon={Code2} label="GeeksforGeeks" iconBg="bg-emerald-50" iconColor="text-emerald-600" />
-        <ConnectedBadge icon={FaLinkedin} label="LinkedIn" iconBg="bg-sky-50" iconColor="text-sky-600" />
+        {connectedProfiles.map((label) => (
+          <ConnectedBadge key={label} label={label} />
+        ))}
       </div>
       <button className="px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-[12.5px] font-semibold">
         Manage Connections
@@ -447,38 +361,54 @@ function ConnectedProfilesBar() {
 --------------------------------------------- */
 
 export default function Dashboard() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      const result = await getDashboardData();
+      if (!cancelled) setData(result);
+    }
+
+    loadDashboard();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!data) {
+    return <p className="text-[13px] text-slate-400">Loading dashboard...</p>;
+  }
+
   return (
-    <div className="min-h-screen w-full bg-[#F4F3FA] flex">
-      <Sidebar />
+    <>
+      <header>
+        <h1 className="text-2xl font-bold text-slate-800">Good morning, {data.user.name}!</h1>
+        <p className="text-[13px] text-slate-400 mt-1">
+          {data.user.role} · {data.user.location} · {data.user.status}
+        </p>
+      </header>
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-5">
-        <header>
-          <h1 className="text-2xl font-bold text-slate-800">Good morning, Sanjay!</h1>
-          <p className="text-[13px] text-slate-400 mt-1">
-            Aspiring Full-Stack Developer · Bangalore, India · Fresher
-          </p>
-        </header>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <RoleReadinessCard role={data.roleReadiness.role} percentage={data.roleReadiness.percentage} />
+        <BestMatchJobsCard count={data.bestMatchJobs} />
+        <SkillsAnalysedCard count={data.skillsAnalysed} />
+        <ProfileStrengthCard percentage={data.profileStrength} />
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          <RoleReadinessCard />
-          <BestMatchJobsCard />
-          <SkillsAnalysedCard />
-          <ProfileStrengthCard />
-        </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <SkillOverviewCard skillOverview={data.skillOverview} />
+        <TopJobsCard topJobs={data.topJobs} />
+        <SkillGapsCard skillGaps={data.skillGaps} />
+      </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-          <SkillOverviewCard />
-          <TopJobsCard />
-          <SkillGapsCard />
-        </div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <AIRecommendationsCard aiRecommendations={data.aiRecommendations} />
+        <RecentProjectsCard recentProjects={data.recentProjects} />
+      </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <AIRecommendationsCard />
-          <RecentProjectsCard />
-        </div>
-
-        <ConnectedProfilesBar />
-      </main>
-    </div>
+      <ConnectedProfilesBar connectedProfiles={data.connectedProfiles} />
+    </>
   );
 }
