@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { Menu, Bell, ChevronDown } from "lucide-react";
+import { Menu, Bell, ChevronDown, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ui";
+import ProfileSettingsModal from "./ProfileSettingsModal";
+import { logout as logoutRequest } from "../services/accountService";
 
 function NotificationBell() {
   return (
@@ -18,6 +20,13 @@ function NotificationBell() {
 
 function ProfileMenu() {
   const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  async function handleLogout() {
+    setOpen(false);
+    await logoutRequest();
+    // TODO: redirect to /login once auth exists.
+  }
 
   return (
     <div className="relative">
@@ -25,7 +34,9 @@ function ProfileMenu() {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2.5 pl-1 pr-2.5 py-1 rounded-2xl hover:bg-white/60"
       >
-        <div className="w-9 h-9 rounded-full bg-slate-200 shrink-0" />
+        <div className="w-9 h-9 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[13px] font-bold shrink-0">
+          S
+        </div>
         <span className="hidden sm:block text-[13.5px] font-semibold text-slate-700">Sanjay</span>
         <ChevronDown size={15} className="text-slate-400 shrink-0" />
       </button>
@@ -33,22 +44,30 @@ function ProfileMenu() {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-slate-100 rounded-2xl shadow-[0_10px_30px_-10px_rgba(76,29,149,0.2)] p-2 z-20">
+          <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-[0_10px_30px_-10px_rgba(76,29,149,0.2)] p-2 z-20">
             <p className="px-2.5 py-1.5 text-[13px] font-semibold text-slate-800">Sanjay</p>
             <p className="px-2.5 pb-2 text-[11.5px] text-slate-400">Aspiring Full-Stack Developer</p>
             <div className="border-t border-slate-100 my-1" />
-            <button className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-slate-600 hover:bg-slate-50">
-            Profile Settings
+            <button
+              onClick={() => {
+                setModalOpen(true);
+                setOpen(false);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-slate-600 hover:bg-slate-50"
+            >
+              Profile Settings
             </button>
-            {/* <button className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-slate-600 hover:bg-slate-50">
-              Settings
-            </button> */}
-            <button className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-rose-500 hover:bg-rose-50">
-              Log out
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-1.5 text-left px-2.5 py-2 rounded-xl text-[13px] text-rose-500 hover:bg-rose-50"
+            >
+              <LogOut size={14} /> Log out
             </button>
           </div>
         </>
       )}
+
+      <ProfileSettingsModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }
