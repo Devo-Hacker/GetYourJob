@@ -38,11 +38,11 @@ function ProfileMenu() {
             <p className="px-2.5 pb-2 text-[11.5px] text-slate-400">Aspiring Full-Stack Developer</p>
             <div className="border-t border-slate-100 my-1" />
             <button className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-slate-600 hover:bg-slate-50">
-              View Profile
+            Profile Settings
             </button>
-            <button className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-slate-600 hover:bg-slate-50">
+            {/* <button className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-slate-600 hover:bg-slate-50">
               Settings
-            </button>
+            </button> */}
             <button className="w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-rose-500 hover:bg-rose-50">
               Log out
             </button>
