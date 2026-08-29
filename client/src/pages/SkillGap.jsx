@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -307,6 +308,7 @@ function RecommendedNextStepsCard({ recommendedNextSteps }) {
 --------------------------------------------- */
 
 function PersonalizedRoadmapBanner() {
+  const navigate = useNavigate();
   return (
     <ClayCard className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-violet-50 to-indigo-50 border-none">
       <div className="flex items-center gap-3">
@@ -320,7 +322,10 @@ function PersonalizedRoadmapBanner() {
           </p>
         </div>
       </div>
-      <button className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(124,58,237,0.5)] shrink-0">
+      <button
+        onClick={() => navigate("/roadmap")}
+        className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(124,58,237,0.5)] shrink-0"
+      >
         View Roadmap
       </button>
     </ClayCard>

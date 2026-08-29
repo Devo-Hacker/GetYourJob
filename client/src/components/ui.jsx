@@ -44,3 +44,62 @@ export function CircularProgress({
     </svg>
   );
 }
+
+/**
+ * Lightweight multi-series line chart, no chart library dependency.
+ * series: [{ name, color, data: number[] }]
+ * labels: string[] (x-axis labels, same length as each series' data)
+ */
+export function LineChart({ series, labels, height = 220, maxValue = 100 }) {
+  const width = 640;
+  const padLeft = 34;
+  const padRight = 10;
+  const padTop = 10;
+  const padBottom = 26;
+  const plotWidth = width - padLeft - padRight;
+  const plotHeight = height - padTop - padBottom;
+
+  const xStep = labels.length > 1 ? plotWidth / (labels.length - 1) : 0;
+  const yFor = (value) => padTop + plotHeight - (value / maxValue) * plotHeight;
+  const xFor = (i) => padLeft + i * xStep;
+
+  const gridLines = [0, 25, 50, 75, 100];
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+      {gridLines.map((g) => (
+        <g key={g}>
+          <line
+            x1={padLeft}
+            x2={width - padRight}
+            y1={yFor(g)}
+            y2={yFor(g)}
+            stroke="#f1f5f9"
+            strokeWidth={1}
+          />
+          <text x={0} y={yFor(g) + 3} fontSize={10} fill="#94a3b8">
+            {g}%
+          </text>
+        </g>
+      ))}
+
+      {labels.map((label, i) => (
+        <text key={label + i} x={xFor(i)} y={height - 6} fontSize={10} fill="#94a3b8" textAnchor="middle">
+          {label}
+        </text>
+      ))}
+
+      {series.map((s) => {
+        const points = s.data.map((v, i) => `${xFor(i)},${yFor(v)}`).join(" ");
+        return (
+          <g key={s.name}>
+            <polyline points={points} fill="none" stroke={s.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            {s.data.map((v, i) => (
+              <circle key={i} cx={xFor(i)} cy={yFor(v)} r={2.5} fill={s.color} />
+            ))}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
