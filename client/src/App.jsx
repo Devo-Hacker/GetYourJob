@@ -14,6 +14,7 @@ import Storage from "./pages/Storage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
+
 function App() {
   return (
     // NOTE: if you already have a ThemeProvider wrapping the app (ui.jsx's
@@ -38,6 +39,7 @@ function App() {
             <Route path="/uploads" element={<Uploads />} />
             <Route path="/connections" element={<Connections />} />
             <Route path="/storage" element={<Storage />} />
+          
           </Route>
         </Routes>
       </BrowserRouter>
