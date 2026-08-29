@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { TargetRoleProvider } from "./context/TargetRoleContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 
@@ -28,7 +29,9 @@ function App() {
           <Route
             element={
               <ProtectedRoute>
-                <Layout />
+                <TargetRoleProvider>
+                  <Layout />
+                </TargetRoleProvider>
               </ProtectedRoute>
             }
           >

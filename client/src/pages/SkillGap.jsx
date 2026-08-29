@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -12,9 +11,11 @@ import {
   Cloud,
   Network,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ClayCard, CircularProgress } from "../components/ui";
 import { getSkillGapData } from "../services/skillGapService";
 import { getSkillBoard, updateDesiredSkills } from "../services/skillsService";
+import { useTargetRole } from "../context/TargetRoleContext";
 import TargetRoleModal from "../components/TargetRoleModal";
 
 function SkillGapHeader({ targetRole, onEditRole }) {
@@ -413,32 +414,50 @@ function SkillBoardCard({ platformSkills, resumeSkills, desiredSkills, onAddDesi
 }
 
 export default function SkillGap() {
+  const { targetRole, setTargetRole, loading: roleLoading } = useTargetRole();
   const [data, setData] = useState(null);
   const [board, setBoard] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
   const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [error, setError] = useState("");
 
-  async function loadBoard() {
-    const result = await getSkillBoard();
-    setBoard(result);
-  }
-
+  // Skill SOURCES (resume/GitHub/desired) don't depend on target role,
+  // so this only needs to run once.
   useEffect(() => {
     let cancelled = false;
-
-    async function loadAll() {
-      const [gapResult, boardResult] = await Promise.all([getSkillGapData(), getSkillBoard()]);
-      if (!cancelled) {
-        setData(gapResult);
-        setBoard(boardResult);
-      }
-    }
-
-    loadAll();
+    getSkillBoard().then((result) => {
+      if (!cancelled) setBoard(result);
+    });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // The actual GAP DATA (overallMatch, skillOverview, topSkillsToImprove...)
+  // is role-specific and must refetch every time targetRole changes -
+  // this replaces the old "[]" dependency array that made the page look
+  // permanently stuck on Full-Stack Developer.
+  useEffect(() => {
+    if (!targetRole) return;
+    let cancelled = false;
+
+    async function loadGap() {
+      setError("");
+      try {
+        const result = await getSkillGapData(targetRole);
+        if (!cancelled) setData(result);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.response?.data?.message || `Couldn't load skill data for "${targetRole}".`);
+        }
+      }
+    }
+
+    loadGap();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetRole]);
 
   async function handleAddDesired(skill) {
     const next = [...new Set([...(board.desiredSkills || []), skill])];
@@ -452,13 +471,13 @@ export default function SkillGap() {
     await updateDesiredSkills(next);
   }
 
-  if (!data || !board) {
+  if (roleLoading || !board || (!data && !error)) {
     return <p className="text-[13px] text-slate-400">Loading skill gap analysis...</p>;
   }
 
   return (
     <>
-      <SkillGapHeader targetRole={board.targetRole} onEditRole={() => setRoleModalOpen(true)} />
+      <SkillGapHeader targetRole={targetRole} onEditRole={() => setRoleModalOpen(true)} />
       <Tabs active={activeTab} onChange={setActiveTab} />
 
       {activeTab === "Overview" ? (
@@ -471,29 +490,37 @@ export default function SkillGap() {
             onRemoveDesired={handleRemoveDesired}
           />
 
-          <OverallMatchCard
-            overallMatch={data.overallMatch}
-            skillsMatched={data.skillsMatched}
-            totalSkills={data.totalSkills}
-            skillsToImprove={data.skillsToImprove}
-            priority={data.priority}
-          />
+          {error ? (
+            <ClayCard className="p-8 text-center">
+              <p className="text-[13.5px] text-rose-500 font-medium">{error}</p>
+            </ClayCard>
+          ) : (
+            <>
+              <OverallMatchCard
+                overallMatch={data.overallMatch}
+                skillsMatched={data.skillsMatched}
+                totalSkills={data.totalSkills}
+                skillsToImprove={data.skillsToImprove}
+                priority={data.priority}
+              />
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-            <div className="xl:col-span-2">
-              <SkillsOverviewCard skillOverview={data.skillOverview} />
-            </div>
-            <TopSkillsToImproveCard topSkillsToImprove={data.topSkillsToImprove} />
-          </div>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+                <div className="xl:col-span-2">
+                  <SkillsOverviewCard skillOverview={data.skillOverview} />
+                </div>
+                <TopSkillsToImproveCard topSkillsToImprove={data.topSkillsToImprove} />
+              </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-            <ProfileStrengthCard percentage={data.profileStrength} />
-            <div className="xl:col-span-2">
-              <RecommendedNextStepsCard recommendedNextSteps={data.recommendedNextSteps} />
-            </div>
-          </div>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+                <ProfileStrengthCard percentage={data.profileStrength} />
+                <div className="xl:col-span-2">
+                  <RecommendedNextStepsCard recommendedNextSteps={data.recommendedNextSteps} />
+                </div>
+              </div>
 
-          <PersonalizedRoadmapBanner />
+              <PersonalizedRoadmapBanner />
+            </>
+          )}
         </>
       ) : (
         <ClayCard className="p-8 text-center">
@@ -505,9 +532,9 @@ export default function SkillGap() {
 
       <TargetRoleModal
         open={roleModalOpen}
-        currentRole={board.targetRole}
+        currentRole={targetRole}
         onClose={() => setRoleModalOpen(false)}
-        onSaved={(newRole) => setBoard((prev) => ({ ...prev, targetRole: newRole }))}
+        onSaved={(newRole) => setTargetRole(newRole)}
       />
     </>
   );

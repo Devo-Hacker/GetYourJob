@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
   ChevronDown,
-  Filter,
+  MapPin,
   Bookmark,
   Send,
   BadgeCheck,
@@ -10,31 +10,62 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { ClayCard, CircularProgress } from "../components/ui";
-import { getJobs, getJobStats, saveJob } from "../services/jobsService";
+import { getJobs, getJobStats, saveJob, applyJob } from "../services/jobsService";
+import { useTargetRole } from "../context/TargetRoleContext";
+import TargetRoleModal from "../components/TargetRoleModal";
 
 /* ---------------------------------------------
-   Search + filter bar
+   Header - target role (drives what jobs are fetched) + search/location
 --------------------------------------------- */
 
-function SearchFilterBar() {
+function JobsHeader({ targetRole, onEditRole }) {
+  return (
+    <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Jobs</h1>
+        <p className="text-[13px] text-slate-400 mt-1">
+          Live openings matched against your real skills, not a static list.
+        </p>
+      </div>
+
+      <ClayCard className="px-4 py-2.5 min-w-[220px]">
+        <p className="text-[11px] font-medium text-slate-400 mb-0.5">Target Role</p>
+        <button
+          onClick={onEditRole}
+          className="flex items-center justify-between w-full text-[13.5px] font-semibold text-slate-700"
+        >
+          {targetRole}
+          <ChevronDown size={15} className="text-slate-400" />
+        </button>
+      </ClayCard>
+    </header>
+  );
+}
+
+function SearchFilterBar({ search, onSearchChange, location, onLocationChange }) {
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       <ClayCard className="flex-1 flex items-center gap-3 px-4 py-3">
         <Search size={17} className="text-slate-400 shrink-0" />
         <input
           type="text"
-          placeholder="Search job title, skills, company..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Filter by title, company, or skill..."
           className="flex-1 bg-transparent outline-none text-[13.5px] text-slate-600 placeholder:text-slate-400"
         />
       </ClayCard>
 
-      <button className="flex items-center gap-2 px-4 py-3 rounded-[20px] bg-white border border-white shadow-[0_10px_30px_-10px_rgba(76,29,149,0.12)] text-[13px] font-medium text-slate-600 shrink-0">
-        Sort by <ChevronDown size={15} />
-      </button>
-
-      <button className="flex items-center gap-2 px-4 py-3 rounded-[20px] bg-white border border-white shadow-[0_10px_30px_-10px_rgba(76,29,149,0.12)] text-[13px] font-medium text-slate-600 shrink-0">
-        <Filter size={15} /> Filter
-      </button>
+      <ClayCard className="flex items-center gap-3 px-4 py-3 sm:w-56 shrink-0">
+        <MapPin size={16} className="text-slate-400 shrink-0" />
+        <input
+          type="text"
+          value={location}
+          onChange={(e) => onLocationChange(e.target.value)}
+          placeholder="Location (optional)"
+          className="flex-1 bg-transparent outline-none text-[13.5px] text-slate-600 placeholder:text-slate-400 min-w-0"
+        />
+      </ClayCard>
     </div>
   );
 }
@@ -107,7 +138,7 @@ function SkillTag({ label, matched }) {
   );
 }
 
-function JobCard({ job }) {
+function JobCard({ job, onSaved, onApplied }) {
   const {
     id,
     logo,
@@ -122,15 +153,29 @@ function JobCard({ job }) {
     salary,
     posted,
     match,
+    redirectUrl,
+    savedStatus,
   } = job;
 
   const [saving, setSaving] = useState(false);
+  const isSaved = savedStatus === "saved" || savedStatus === "applied";
 
-  const handleSave = async () => {
+  async function handleSave() {
+    if (isSaved || saving) return;
     setSaving(true);
-    await saveJob(id);
-    setSaving(false);
-  };
+    try {
+      await saveJob(job);
+      onSaved(id);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleView() {
+    // Fire-and-forget - don't block opening the listing on this call.
+    applyJob(job).then(() => onApplied(id));
+    if (redirectUrl) window.open(redirectUrl, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <ClayCard className="p-5 sm:p-6">
@@ -161,9 +206,11 @@ function JobCard({ job }) {
           </p>
 
           <div className="flex flex-wrap gap-2 mt-3">
-            {tags.map((t) => (
-              <SkillTag key={t.label} label={t.label} matched={t.matched} />
-            ))}
+            {tags.length > 0 ? (
+              tags.map((t) => <SkillTag key={t.label} label={t.label} matched={t.matched} />)
+            ) : (
+              <span className="text-[11.5px] text-slate-400">No specific skills detected in this posting</span>
+            )}
           </div>
 
           <p className="text-[12.5px] text-slate-500 mt-3">
@@ -176,12 +223,15 @@ function JobCard({ job }) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || isSaved}
               className="px-3.5 py-2 rounded-2xl border border-slate-200 text-[12.5px] font-semibold text-slate-600 flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50"
             >
-              <Bookmark size={14} /> {saving ? "Saving..." : "Save"}
+              <Bookmark size={14} /> {isSaved ? "Saved" : saving ? "Saving..." : "Save"}
             </button>
-            <button className="px-4 py-2 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[12.5px] font-semibold shadow-[0_10px_20px_-8px_rgba(124,58,237,0.5)] whitespace-nowrap">
+            <button
+              onClick={handleView}
+              className="px-4 py-2 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[12.5px] font-semibold shadow-[0_10px_20px_-8px_rgba(124,58,237,0.5)] whitespace-nowrap"
+            >
               View Job
             </button>
           </div>
@@ -196,20 +246,44 @@ function JobCard({ job }) {
 --------------------------------------------- */
 
 export default function Jobs() {
+  const { targetRole, setTargetRole, loading: roleLoading } = useTargetRole();
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+
   const [jobs, setJobs] = useState([]);
   const [stats, setStats] = useState({ savedJobs: 0, appliedJobs: 0 });
+  const [search, setSearch] = useState("");
+  const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  // Refetches every time the target role (or location) changes - this
+  // is the actual fix for jobs looking "stuck": there's no cached/mock
+  // list, every change re-queries the backend for that exact role.
   useEffect(() => {
+    if (!targetRole) return;
     let cancelled = false;
 
     async function loadJobsPage() {
       setLoading(true);
-      const [jobsData, statsData] = await Promise.all([getJobs(), getJobStats()]);
-      if (!cancelled) {
-        setJobs(jobsData);
-        setStats(statsData);
-        setLoading(false);
+      setError("");
+      try {
+        const [jobsData, statsData] = await Promise.all([
+          getJobs(targetRole, location),
+          getJobStats(),
+        ]);
+        if (!cancelled) {
+          setJobs(jobsData);
+          setStats(statsData);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err.response?.data?.message ||
+              "Couldn't load jobs right now. Check your connection and try again."
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -217,26 +291,78 @@ export default function Jobs() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [targetRole, location]);
 
-  if (loading) {
+  const filteredJobs = useMemo(() => {
+    if (!search.trim()) return jobs;
+    const q = search.toLowerCase();
+    return jobs.filter(
+      (j) =>
+        j.title.toLowerCase().includes(q) ||
+        j.company.toLowerCase().includes(q) ||
+        j.tags.some((t) => t.label.toLowerCase().includes(q))
+    );
+  }, [jobs, search]);
+
+  function markSaved(id) {
+    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, savedStatus: "saved" } : j)));
+    setStats((prev) => ({ ...prev, savedJobs: prev.savedJobs + 1 }));
+  }
+
+  function markApplied(id) {
+    setJobs((prev) =>
+      prev.map((j) => (j.id === id && j.savedStatus !== "applied" ? { ...j, savedStatus: "applied" } : j))
+    );
+    setStats((prev) => ({ ...prev, appliedJobs: prev.appliedJobs + 1 }));
+  }
+
+  if (roleLoading || (loading && jobs.length === 0 && !error)) {
     return <p className="text-[13px] text-slate-400">Loading jobs...</p>;
   }
 
   return (
     <>
-      <SearchFilterBar />
+      <JobsHeader targetRole={targetRole} onEditRole={() => setRoleModalOpen(true)} />
+
+      <SearchFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        location={location}
+        onLocationChange={setLocation}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <SavedJobsCard count={stats.savedJobs} />
         <AppliedJobsCard count={stats.appliedJobs} />
       </div>
 
-      <div className="space-y-5">
-        {jobs.map((job) => (
-          <JobCard key={job.id} job={job} />
-        ))}
-      </div>
+      {error ? (
+        <ClayCard className="p-6 text-center">
+          <p className="text-[13.5px] text-rose-500 font-medium">{error}</p>
+          <p className="text-[12px] text-slate-400 mt-1">
+            If this keeps happening, check that ADZUNA_APP_ID / ADZUNA_APP_KEY are set on the server.
+          </p>
+        </ClayCard>
+      ) : filteredJobs.length === 0 ? (
+        <ClayCard className="p-8 text-center">
+          <p className="text-[13.5px] text-slate-400">
+            No openings found for "{targetRole}" right now. Try a different target role or clear your filters.
+          </p>
+        </ClayCard>
+      ) : (
+        <div className="space-y-5">
+          {filteredJobs.map((job) => (
+            <JobCard key={job.id} job={job} onSaved={markSaved} onApplied={markApplied} />
+          ))}
+        </div>
+      )}
+
+      <TargetRoleModal
+        open={roleModalOpen}
+        currentRole={targetRole}
+        onClose={() => setRoleModalOpen(false)}
+        onSaved={(newRole) => setTargetRole(newRole)}
+      />
     </>
   );
 }
