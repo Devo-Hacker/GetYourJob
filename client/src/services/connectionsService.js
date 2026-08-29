@@ -1,143 +1,68 @@
 import apiClient from "../api/client";
 
-/* ---------------------------------------------------------
-   MOCK DATA - delete this whole block once the backend
-   endpoint below is live. Nothing outside this file needs
-   to change when you do.
---------------------------------------------------------- */
-const mockConnections = {
-  stats: {
-    dayStreak: 12,
-    activeThisMonth: 68,
-    activeChange: 12,
-    achievements: 42,
-    totalCodingHours: 86,
-    totalContributions: 1248,
-  },
+export const PLATFORM_CATALOG = [
+  { id: "github", name: "GitHub", tagline: "Code. Commit. Contribute." },
+  { id: "leetcode", name: "LeetCode", tagline: "Sharpen your problem solving." },
+  { id: "geeksforgeeks", name: "GeeksforGeeks", tagline: "Practice. Learn. Grow." },
+  { id: "codechef", name: "CodeChef", tagline: "Compete. Improve. Win." },
+  { id: "hackerrank", name: "HackerRank", tagline: "Solve challenges. Get certified." },
+  { id: "codeforces", name: "Codeforces", tagline: "Compete and improve." },
+  { id: "linkedin", name: "LinkedIn", tagline: "Grow your professional network." },
+  { id: "gitlab", name: "GitLab", tagline: "Ship and collaborate on code." },
+  { id: "kaggle", name: "Kaggle", tagline: "Data science competitions." },
+  { id: "hackerearth", name: "HackerEarth", tagline: "Solve, compete, get hired." },
+];
 
-  connectedPlatforms: [
-    {
-      id: "github",
-      name: "GitHub",
-      status: "Connected",
-      tagline: "Code. Commit. Contribute.",
-      stats: [
-        { label: "Repositories", value: 24 },
-        { label: "Commits (This month)", value: 18 },
-        { label: "Pull Requests (This month)", value: 7 },
-      ],
-    },
-    {
-      id: "leetcode",
-      name: "LeetCode",
-      status: "Connected",
-      tagline: "Sharpen your problem solving.",
-      stats: [
-        { label: "Problems Solved", value: 186 },
-        { label: "Medium", value: 154 },
-        { label: "Hard", value: 32 },
-      ],
-    },
-    {
-      id: "gfg",
-      name: "GeeksforGeeks",
-      status: "Connected",
-      tagline: "Practice. Learn. Grow.",
-      stats: [
-        { label: "Problems Solved", value: 94 },
-        { label: "Medium", value: 62 },
-        { label: "Hard", value: 12 },
-      ],
-    },
-    {
-      id: "codechef",
-      name: "CodeChef",
-      status: "Connected",
-      tagline: "Compete. Improve. Win.",
-      stats: [
-        { label: "Contests", value: 3 },
-        { label: "Rating", value: 1480 },
-        { label: "Global Rank", value: "#23,456" },
-      ],
-    },
-    {
-      id: "hackerrank",
-      name: "HackerRank",
-      status: "Connected",
-      tagline: "Solve challenges. Get certified.",
-      stats: [
-        { label: "Badges", value: 5 },
-        { label: "Problems Solved", value: 312 },
-        { label: "Certifications", value: 2 },
-      ],
-    },
-    {
-      id: "codeforces",
-      name: "Codeforces",
-      status: "Connected",
-      tagline: "Compete and improve.",
-      stats: [
-        { label: "Rating", value: 1425 },
-        { label: "Global Rank", value: "#18,743" },
-        { label: "Problems Solved", value: 21 },
-      ],
-    },
-  ],
+export async function getRawConnections() {
+  const { data } = await apiClient.get("/connections");
+  return data.connections;
+}
 
-  availablePlatforms: [
-    { id: "kaggle", name: "Kaggle", tagline: "Explore data. Build models." },
-    { id: "gitlab", name: "GitLab", tagline: "Manage code. Collaborate." },
-    { id: "hackerearth", name: "HackerEarth", tagline: "Solve problems. Get noticed." },
-  ],
+// platform: catalog id, e.g. "github". usernameOrUrl: plain username or full profile URL.
+export async function addConnection({ platform, usernameOrUrl }) {
+  const { data } = await apiClient.post("/connections", { platform, usernameOrUrl });
+  return data.connection;
+}
 
-  activityOverview: {
-    range: "Last 6 Months",
-    labels: ["Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-    series: [
-      { id: "github", name: "GitHub", color: "#1e293b", data: [78, 88, 90, 82, 91, 92] },
-      { id: "leetcode", name: "LeetCode", color: "#f59e0b", data: [50, 68, 62, 66, 70, 68] },
-      { id: "gfg", name: "GeeksforGeeks", color: "#22c55e", data: [28, 45, 48, 45, 52, 50] },
-      { id: "codechef", name: "CodeChef", color: "#7c3aed", data: [15, 26, 30, 28, 33, 32] },
-      { id: "hackerrank", name: "HackerRank", color: "#38bdf8", data: [8, 20, 18, 22, 20, 20] },
-    ],
-  },
+export async function updateManualStats(platform, stats) {
+  const { data } = await apiClient.put(`/connections/${platform}/stats`, { stats });
+  return data.connection;
+}
 
-  recentActivity: [
-    { platform: "github", title: "Pushed 4 commits to DevSphere/frontend", time: "2 hours ago" },
-    { platform: "leetcode", title: 'Solved "Longest Substring Without Repeating Characters"', time: "4 hours ago" },
-    { platform: "gfg", title: "Completed Dynamic Programming - Basic Set", time: "1 day ago" },
-    { platform: "codechef", title: "Participated in Starters 115 Division 3", time: "2 days ago" },
-    { platform: "github", title: "Created new repository DevSphere-Backend", time: "3 days ago" },
-  ],
-
-  profileImpact: [
-    {
-      tone: "emerald",
-      title: "Your GitHub activity increased your Full-Stack Developer evidence score",
-      delta: "+4%",
-      note: "More commits = stronger proof of consistency",
-    },
-    {
-      tone: "sky",
-      title: "You solved 12 DSA problems this week. Your problem-solving evidence is improving!",
-      note: "Keep solving to boost your match score",
-    },
-    {
-      tone: "indigo",
-      title: "Your recent Docker project strengthens one of your identified skill gaps",
-      note: "Great job closing the gap!",
-    },
-  ],
-};
-/* --------------------------------------------------------- */
+export async function removeConnection(platform) {
+  await apiClient.delete(`/connections/${platform}`);
+}
 
 export async function getConnectionsData() {
-  // TODO (backend): once /api/connections exists, replace the two lines
-  // below this comment with:
-  //
-  //   const { data } = await apiClient.get("/connections");
-  //   return data;
-  //
-  // Every component calling getConnectionsData() keeps working unchanged.
-  return new Promise((resolve) => setTimeout(() => resolve(mockConnections), 250));
+  const connections = await getRawConnections();
+  const connectedIds = connections.map((c) => c.platform);
+  const github = connections.find((c) => c.platform === "github");
+
+  return {
+    stats: {
+      dayStreak: 0,
+      activeThisMonth: 0,
+      activeChange: 0,
+      achievements: 0,
+      totalCodingHours: 0,
+      totalContributions: github?.data?.publicRepos ?? 0,
+    },
+    connectedPlatforms: connections.map((c) => {
+      const catalogEntry = PLATFORM_CATALOG.find((p) => p.id === c.platform);
+      return {
+        id: c.platform,
+        name: catalogEntry?.name || c.platform,
+        status: "Connected",
+        tagline: c.usernameOrUrl,
+        stats: Object.entries(c.data || {})
+          .filter(([, v]) => typeof v === "number" || typeof v === "string")
+          .slice(0, 3)
+          .map(([label, value]) => ({ label, value })),
+      };
+    }),
+    availablePlatforms: PLATFORM_CATALOG.filter((p) => !connectedIds.includes(p.id)),
+    activityOverview: { range: "Last 6 Months", series: [], labels: [] },
+    recentActivity: [],
+    profileImpact: [],
+  };
 }

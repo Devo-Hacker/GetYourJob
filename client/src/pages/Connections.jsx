@@ -13,11 +13,13 @@ import {
 } from "react-icons/si";
 import { ClayCard, LineChart } from "../components/ui";
 import { getConnectionsData } from "../services/connectionsService";
+import AddPlatformModal from "../components/AddPlatformModal";
 
 const platformIcons = {
   github: { Icon: SiGithub, bg: "bg-slate-900", text: "text-white" },
   leetcode: { Icon: SiLeetcode, bg: "bg-orange-50", text: "text-orange-500" },
   gfg: { Icon: SiGeeksforgeeks, bg: "bg-emerald-50", text: "text-emerald-600" },
+  geeksforgeeks: { Icon: SiGeeksforgeeks, bg: "bg-emerald-50", text: "text-emerald-600" },
   codechef: { Icon: SiCodechef, bg: "bg-amber-50", text: "text-amber-700" },
   hackerrank: { Icon: SiHackerrank, bg: "bg-emerald-50", text: "text-emerald-600" },
   codeforces: { Icon: SiCodeforces, bg: "bg-indigo-50", text: "text-indigo-600" },
@@ -30,7 +32,7 @@ const platformIcons = {
    Header
 --------------------------------------------- */
 
-function ConnectionsHeader() {
+function ConnectionsHeader({ onAddClick }) {
   return (
     <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
       <div>
@@ -39,7 +41,10 @@ function ConnectionsHeader() {
           Track your activity across all your developer platforms in one place.
         </p>
       </div>
-      <button className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white text-[13px] font-semibold flex items-center gap-1.5 shadow-[0_10px_20px_-8px_rgba(79,70,229,0.5)] shrink-0">
+      <button
+        onClick={onAddClick}
+        className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white text-[13px] font-semibold flex items-center gap-1.5 shadow-[0_10px_20px_-8px_rgba(79,70,229,0.5)] shrink-0"
+      >
         <Plus size={15} /> Add Platform
       </button>
     </header>
@@ -106,14 +111,18 @@ function ConnectedPlatformCard({ platform }) {
       </div>
       <p className="text-[12px] text-slate-400 mt-2">{platform.tagline}</p>
 
-      <div className="grid grid-cols-3 gap-2 mt-4">
-        {platform.stats.map((s) => (
-          <div key={s.label}>
-            <p className="text-[15px] font-bold text-slate-800 leading-tight">{s.value}</p>
-            <p className="text-[10.5px] text-slate-400 leading-snug">{s.label}</p>
-          </div>
-        ))}
-      </div>
+      {platform.stats.length > 0 ? (
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          {platform.stats.map((s) => (
+            <div key={s.label}>
+              <p className="text-[15px] font-bold text-slate-800 leading-tight">{s.value}</p>
+              <p className="text-[10.5px] text-slate-400 leading-snug">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11.5px] text-slate-400 mt-4">No stats synced yet.</p>
+      )}
 
       <button className="mt-4 text-[12.5px] font-semibold text-indigo-500 flex items-center gap-1">
         View Stats <ChevronRight size={13} />
@@ -122,7 +131,7 @@ function ConnectedPlatformCard({ platform }) {
   );
 }
 
-function AvailablePlatformCard({ platform }) {
+function AvailablePlatformCard({ platform, onConnect }) {
   const { Icon, bg, text } = platformIcons[platform.id] || {};
   return (
     <ClayCard className="p-5">
@@ -138,14 +147,17 @@ function AvailablePlatformCard({ platform }) {
         </span>
       </div>
       <p className="text-[12px] text-slate-400 mt-2 mb-4">{platform.tagline}</p>
-      <button className="w-full py-2 rounded-xl border border-indigo-200 text-indigo-600 text-[12.5px] font-semibold">
+      <button
+        onClick={() => onConnect(platform.id)}
+        className="w-full py-2 rounded-xl border border-indigo-200 text-indigo-600 text-[12.5px] font-semibold"
+      >
         Connect
       </button>
     </ClayCard>
   );
 }
 
-function ConnectedPlatformsSection({ connected, available }) {
+function ConnectedPlatformsSection({ connected, available, onConnect }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-4">
@@ -160,7 +172,7 @@ function ConnectedPlatformsSection({ connected, available }) {
           <ConnectedPlatformCard key={p.id} platform={p} />
         ))}
         {available.map((p) => (
-          <AvailablePlatformCard key={p.id} platform={p} />
+          <AvailablePlatformCard key={p.id} platform={p} onConnect={onConnect} />
         ))}
       </div>
 
@@ -186,16 +198,23 @@ function ActivityOverviewCard({ activityOverview }) {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 mb-2">
-        {activityOverview.series.map((s) => (
-          <span key={s.id} className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-            {s.name}
-          </span>
-        ))}
-      </div>
-
-      <LineChart series={activityOverview.series} labels={activityOverview.labels} height={200} maxValue={100} />
+      {activityOverview.series.length > 0 ? (
+        <>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 mb-2">
+            {activityOverview.series.map((s) => (
+              <span key={s.id} className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                {s.name}
+              </span>
+            ))}
+          </div>
+          <LineChart series={activityOverview.series} labels={activityOverview.labels} height={200} maxValue={100} />
+        </>
+      ) : (
+        <p className="text-[12.5px] text-slate-400 mt-4">
+          Connect a platform to start tracking activity here.
+        </p>
+      )}
 
       <button className="mt-3 text-[12.5px] font-semibold text-indigo-500 flex items-center gap-1">
         View Detailed Analytics <ChevronRight size={13} />
@@ -215,71 +234,28 @@ function RecentActivityCard({ recentActivity }) {
         <h3 className="font-semibold text-slate-800 text-[15px]">Recent Activity</h3>
         <button className="text-[12.5px] font-semibold text-indigo-500">View All</button>
       </div>
-      <div className="divide-y divide-slate-100">
-        {recentActivity.map((a, i) => {
-          const { Icon, bg, text } = platformIcons[a.platform] || {};
-          return (
-            <div key={i} className="flex items-center gap-3 py-2.5">
-              <div className={`w-8 h-8 rounded-lg ${bg} ${text} flex items-center justify-center shrink-0`}>
-                {Icon && <Icon size={14} />}
+      {recentActivity.length > 0 ? (
+        <div className="divide-y divide-slate-100">
+          {recentActivity.map((a, i) => {
+            const { Icon, bg, text } = platformIcons[a.platform] || {};
+            return (
+              <div key={i} className="flex items-center gap-3 py-2.5">
+                <div className={`w-8 h-8 rounded-lg ${bg} ${text} flex items-center justify-center shrink-0`}>
+                  {Icon && <Icon size={14} />}
+                </div>
+                <p className="text-[12.5px] text-slate-600 flex-1 min-w-0">{a.title}</p>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[11px] text-slate-400 whitespace-nowrap">{a.time}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                </div>
               </div>
-              <p className="text-[12.5px] text-slate-600 flex-1 min-w-0">{a.title}</p>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[11px] text-slate-400 whitespace-nowrap">{a.time}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <button className="mt-3 text-[12.5px] font-semibold text-indigo-500 flex items-center gap-1">
-        View All Activity <ChevronRight size={13} />
-      </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-[12.5px] text-slate-400">Nothing here yet.</p>
+      )}
     </ClayCard>
-  );
-}
-
-/* ---------------------------------------------
-   Profile impact strip
---------------------------------------------- */
-
-const impactToneClasses = {
-  emerald: "bg-emerald-50 text-emerald-600",
-  sky: "bg-sky-50 text-sky-600",
-  indigo: "bg-indigo-50 text-indigo-600",
-};
-
-function ProfileImpactCard({ profileImpact }) {
-  return (
-    <ClayCard className="p-5">
-      <h3 className="font-semibold text-slate-800 text-[15px] mb-4">How your activity improves your DevSphere profile</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {profileImpact.map((item, i) => (
-          <div key={i} className="rounded-2xl bg-slate-50/70 p-4">
-            <div className={`w-8 h-8 rounded-lg ${impactToneClasses[item.tone]} flex items-center justify-center mb-3`}>
-              <CheckCircle2 size={15} />
-            </div>
-            <p className="text-[12.5px] text-slate-700 leading-snug">{item.title}</p>
-            {item.delta && (
-              <p className="text-[12px] font-semibold text-emerald-500 mt-1.5 flex items-center gap-1">
-                <ArrowUpRight size={12} /> {item.delta}
-              </p>
-            )}
-            <p className="text-[11px] text-slate-400 mt-1">{item.note}</p>
-          </div>
-        ))}
-      </div>
-    </ClayCard>
-  );
-}
-
-function TrustNote() {
-  return (
-    <p className="text-[11.5px] text-slate-400 flex items-center gap-1.5">
-      <ShieldCheck size={14} className="text-slate-400" />
-      We only read public data. Your credentials are encrypted and never stored.{" "}
-      <button className="font-semibold text-indigo-500">Learn more</button>
-    </p>
   );
 }
 
@@ -289,20 +265,29 @@ function TrustNote() {
 
 export default function Connections() {
   const [data, setData] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [presetPlatform, setPresetPlatform] = useState(null);
+
+  async function loadConnections() {
+    const result = await getConnectionsData();
+    setData(result);
+  }
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadConnections() {
+    (async () => {
       const result = await getConnectionsData();
       if (!cancelled) setData(result);
-    }
-
-    loadConnections();
+    })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  function openModal(platformId) {
+    setPresetPlatform(platformId || null);
+    setModalOpen(true);
+  }
 
   if (!data) {
     return <p className="text-[13px] text-slate-400">Loading your connections...</p>;
@@ -310,12 +295,16 @@ export default function Connections() {
 
   return (
     <>
-      <ConnectionsHeader />
+      <ConnectionsHeader onAddClick={() => openModal(null)} />
       <StatsRow stats={data.stats} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
         <div className="xl:col-span-2">
-          <ConnectedPlatformsSection connected={data.connectedPlatforms} available={data.availablePlatforms} />
+          <ConnectedPlatformsSection
+            connected={data.connectedPlatforms}
+            available={data.availablePlatforms}
+            onConnect={openModal}
+          />
         </div>
         <div className="space-y-5">
           <ActivityOverviewCard activityOverview={data.activityOverview} />
@@ -323,8 +312,17 @@ export default function Connections() {
         </div>
       </div>
 
-      <ProfileImpactCard profileImpact={data.profileImpact} />
-      <TrustNote />
+      <p className="text-[11.5px] text-slate-400 flex items-center gap-1.5">
+        <ShieldCheck size={14} className="text-slate-400" />
+        We only read public data. Your credentials are encrypted and never stored.
+      </p>
+
+      <AddPlatformModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConnected={loadConnections}
+        presetPlatform={presetPlatform}
+      />
     </>
   );
 }

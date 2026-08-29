@@ -3,7 +3,7 @@ import {
   Briefcase,
   BarChart2,
   Map,
-  FolderKanban,
+  Upload,
   Link2,
   Database,
 } from "lucide-react";
@@ -13,8 +13,7 @@ export const navItems = [
   { icon: Briefcase, label: "Jobs", path: "/jobs" },
   { icon: BarChart2, label: "Skill Gap", path: "/skill-gap" },
   { icon: Map, label: "Roadmap", path: "/roadmap" },
-  { icon: FolderKanban, label: "Projects", path: "/projects" },
+  { icon: Upload, label: "Uploads", path: "/uploads" },
   { icon: Link2, label: "Connections", path: "/connections" },
-  { icon: Database, label: "Storage", path: "/storage"},
-//   { icon: Settings, label: "Settings", path: "/settings" },
+  { icon: Database, label: "Storage", path: "/storage" },
 ];
