@@ -460,6 +460,7 @@ function KeepBuildingBanner() {
 export default function Uploads() {
   const [projectsData, setProjectsData] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [search, setSearch] = useState("");
   const [view, setView] = useState("grid");
   const [modalOpen, setModalOpen] = useState(false);
@@ -470,6 +471,7 @@ export default function Uploads() {
     const [projects, profileData] = await Promise.all([getProjectsData(), getProfile()]);
     setProjectsData(projects);
     setProfile(profileData);
+    setProfileLoaded(true);
   }
 
   useEffect(() => {
@@ -479,6 +481,7 @@ export default function Uploads() {
       if (!cancelled) {
         setProjectsData(projects);
         setProfile(profileData);
+        setProfileLoaded(true);
       }
     })();
     return () => {
@@ -518,7 +521,7 @@ export default function Uploads() {
     await loadAll();
   }
 
-  if (!projectsData || profile === null) {
+  if (!projectsData || !profileLoaded) {
     return <p className="text-[13px] text-slate-400">Loading your uploads...</p>;
   }
 

@@ -12,16 +12,22 @@ import {
   Code2,
   MoreHorizontal,
   ChevronDown,
+  ChevronRight,
   FolderPlus,
   Lock,
   FolderOpen,
+  Folder as FolderIcon,
   File as FileIcon,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 import { ClayCard } from "../components/ui";
+import NewFolderModal from "../components/NewFolderModal";
 import {
   getStorageData,
   uploadFiles,
+  deleteFile,
+  deleteFolder,
   formatBytes,
 } from "../services/storageService";
 
@@ -80,6 +86,38 @@ function StorageHeader({ search, onSearchChange, onUploadClick, onNewFolder }) {
         </button>
       </div>
     </header>
+  );
+}
+
+/* ---------------------------------------------
+   Breadcrumbs
+--------------------------------------------- */
+
+function Breadcrumbs({ crumbs, onNavigate }) {
+  return (
+    <div className="flex items-center gap-1.5 text-[13px] px-1 flex-wrap">
+      <button
+        onClick={() => onNavigate(null)}
+        className={`font-medium ${
+          crumbs.length === 0 ? "text-slate-800" : "text-slate-400 hover:text-slate-600"
+        }`}
+      >
+        My Storage
+      </button>
+      {crumbs.map((c, i) => (
+        <React.Fragment key={c.id}>
+          <ChevronRight size={13} className="text-slate-300 shrink-0" />
+          <button
+            onClick={() => onNavigate(c.id)}
+            className={`font-medium ${
+              i === crumbs.length - 1 ? "text-slate-800" : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            {c.name}
+          </button>
+        </React.Fragment>
+      ))}
+    </div>
   );
 }
 
@@ -152,11 +190,13 @@ function EmptyStateArt() {
   );
 }
 
-function EmptyState({ onUploadClick, onNewFolder }) {
+function EmptyState({ onUploadClick, onNewFolder, inFolder }) {
   return (
     <div className="py-12 flex flex-col items-center text-center">
       <EmptyStateArt />
-      <h3 className="text-[17px] font-bold text-slate-800">Your storage is empty</h3>
+      <h3 className="text-[17px] font-bold text-slate-800">
+        {inFolder ? "This folder is empty" : "Your storage is empty"}
+      </h3>
       <p className="text-[13px] text-slate-400 mt-1">
         Upload files or{" "}
         <button onClick={onNewFolder} className="text-indigo-600 font-medium">
@@ -184,10 +224,41 @@ function EmptyState({ onUploadClick, onNewFolder }) {
 }
 
 /* ---------------------------------------------
-   File list (once files exist)
+   Folder row
 --------------------------------------------- */
 
-function FileRow({ file }) {
+function FolderRow({ folder, onOpen, onDelete }) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-50 cursor-pointer"
+      onClick={() => onOpen(folder.id)}
+    >
+      <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+        <FolderIcon size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13.5px] font-medium text-slate-800 truncate">{folder.name}</p>
+        <p className="text-[11.5px] text-slate-400">Folder</p>
+      </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(folder.id);
+        }}
+        className="text-slate-400 hover:text-red-500 shrink-0"
+        aria-label="Delete folder"
+      >
+        <Trash2 size={15} />
+      </button>
+    </div>
+  );
+}
+
+/* ---------------------------------------------
+   File row
+--------------------------------------------- */
+
+function FileRow({ file, onDelete }) {
   const Icon = TYPE_ICON[file.type] || FileIcon;
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-50">
@@ -197,10 +268,14 @@ function FileRow({ file }) {
       <div className="flex-1 min-w-0">
         <p className="text-[13.5px] font-medium text-slate-800 truncate">{file.name}</p>
         <p className="text-[11.5px] text-slate-400">
-          {formatBytes(file.sizeBytes)} · {file.updatedAt}
+          {formatBytes(file.sizeBytes)} · {new Date(file.updatedAt).toLocaleDateString()}
         </p>
       </div>
-      <button className="text-slate-400 hover:text-red-500 shrink-0" aria-label="Delete file">
+      <button
+        onClick={() => onDelete(file.id)}
+        className="text-slate-400 hover:text-red-500 shrink-0"
+        aria-label="Delete file"
+      >
         <Trash2 size={15} />
       </button>
       <button className="text-slate-400 hover:text-slate-600 shrink-0" aria-label="More options">
@@ -214,18 +289,42 @@ function FileRow({ file }) {
    My Storage card
 --------------------------------------------- */
 
-function MyStorageCard({ files, search, onUploadClick, onNewFolder, onRefresh }) {
-  const filtered = search.trim()
-    ? files.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()))
-    : files;
+function MyStorageCard({
+  folders,
+  files,
+  search,
+  crumbs,
+  onNavigate,
+  onOpenFolder,
+  onUploadClick,
+  onNewFolder,
+  onRefresh,
+  onDeleteFile,
+  onDeleteFolder,
+}) {
+  const q = search.trim().toLowerCase();
+  const filteredFolders = q ? folders.filter((f) => f.name.toLowerCase().includes(q)) : folders;
+  const filteredFiles = q ? files.filter((f) => f.name.toLowerCase().includes(q)) : files;
+  const isEmpty = filteredFolders.length === 0 && filteredFiles.length === 0;
 
   return (
     <ClayCard className="p-0 overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
-        <div className="flex items-center gap-2 text-slate-700 font-semibold text-[14px]">
-          <Monitor size={16} className="text-slate-400" /> My Storage
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50 gap-3">
+        <div className="flex items-center gap-2 text-slate-700 font-semibold text-[14px] min-w-0">
+          {crumbs.length > 0 ? (
+            <button
+              onClick={() => onNavigate(crumbs.length > 1 ? crumbs[crumbs.length - 2].id : null)}
+              className="text-slate-400 hover:text-slate-600 shrink-0"
+              aria-label="Back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+          ) : (
+            <Monitor size={16} className="text-slate-400 shrink-0" />
+          )}
+          <Breadcrumbs crumbs={crumbs} onNavigate={onNavigate} />
         </div>
-        <div className="flex items-center gap-3 text-slate-400">
+        <div className="flex items-center gap-3 text-slate-400 shrink-0">
           <button onClick={onRefresh} aria-label="Refresh" className="hover:text-slate-600">
             <RefreshCw size={15} />
           </button>
@@ -236,12 +335,19 @@ function MyStorageCard({ files, search, onUploadClick, onNewFolder, onRefresh })
       </div>
 
       <div className="px-6 py-2">
-        {filtered.length === 0 ? (
-          <EmptyState onUploadClick={onUploadClick} onNewFolder={onNewFolder} />
+        {isEmpty ? (
+          <EmptyState
+            onUploadClick={onUploadClick}
+            onNewFolder={onNewFolder}
+            inFolder={crumbs.length > 0}
+          />
         ) : (
           <div className="py-2 flex flex-col divide-y divide-slate-50">
-            {filtered.map((f) => (
-              <FileRow key={f.id} file={f} />
+            {filteredFolders.map((f) => (
+              <FolderRow key={f.id} folder={f} onOpen={onOpenFolder} onDelete={onDeleteFolder} />
+            ))}
+            {filteredFiles.map((f) => (
+              <FileRow key={f.id} file={f} onDelete={onDeleteFile} />
             ))}
           </div>
         )}
@@ -325,25 +431,27 @@ function SupportedFilesCard() {
 
 export default function Storage() {
   const [data, setData] = useState(null);
+  const [currentFolderId, setCurrentFolderId] = useState(null);
   const [search, setSearch] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
   const fileInputRef = useRef(null);
 
-  async function load() {
-    const result = await getStorageData();
+  async function load(folderId = currentFolderId) {
+    const result = await getStorageData(folderId);
     setData(result);
   }
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const result = await getStorageData();
+      const result = await getStorageData(currentFolderId);
       if (!cancelled) setData(result);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentFolderId]);
 
   function handleUploadClick() {
     fileInputRef.current?.click();
@@ -354,7 +462,7 @@ export default function Storage() {
     if (!files || files.length === 0) return;
     setUploading(true);
     try {
-      await uploadFiles(files);
+      await uploadFiles(files, currentFolderId);
       await load();
     } finally {
       setUploading(false);
@@ -363,8 +471,27 @@ export default function Storage() {
   }
 
   function handleNewFolder() {
-    // TODO: swap for a proper modal once folder creation is designed.
-    // Wired to createFolder() in storageService.js.
+    setFolderModalOpen(true);
+  }
+
+  async function handleDeleteFile(id) {
+    await deleteFile(id);
+    await load();
+  }
+
+  async function handleDeleteFolder(id) {
+    await deleteFolder(id);
+    await load();
+  }
+
+  function handleNavigate(folderId) {
+    setSearch("");
+    setCurrentFolderId(folderId);
+  }
+
+  function handleOpenFolder(folderId) {
+    setSearch("");
+    setCurrentFolderId(folderId);
   }
 
   if (!data) {
@@ -385,6 +512,13 @@ export default function Storage() {
         onChange={handleFilesSelected}
       />
 
+      <NewFolderModal
+        open={folderModalOpen}
+        onClose={() => setFolderModalOpen(false)}
+        onCreated={load}
+        parentId={currentFolderId}
+      />
+
       <StorageHeader
         search={search}
         onSearchChange={setSearch}
@@ -399,11 +533,17 @@ export default function Storage() {
       )}
 
       <MyStorageCard
+        folders={data.folders}
         files={data.files}
         search={search}
+        crumbs={data.breadcrumbs}
+        onNavigate={handleNavigate}
+        onOpenFolder={handleOpenFolder}
         onUploadClick={handleUploadClick}
         onNewFolder={handleNewFolder}
-        onRefresh={load}
+        onRefresh={() => load()}
+        onDeleteFile={handleDeleteFile}
+        onDeleteFolder={handleDeleteFolder}
       />
 
       <div className="flex flex-col lg:flex-row gap-5">
