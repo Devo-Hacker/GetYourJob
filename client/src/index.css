@@ -1,1 +1,97 @@
 @import "tailwindcss";
+
+/* Enables the `dark:` variant to key off a `.dark` class on <html>
+   instead of the OS-level prefers-color-scheme media query, so the
+   in-app toggle has full control. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+html {
+  transition: background-color 0.2s ease;
+}
+
+/* ---------------------------------------------------------------
+   Global dark-mode overrides.
+
+   Every page below (Dashboard, Jobs, SkillGap, Roadmap, Connections,
+   Projects) uses a small, consistent palette of Tailwind utility
+   classes (text-slate-800, bg-indigo-50, border-slate-100, etc).
+   Rather than hand-editing dark: variants into hundreds of lines
+   across six files, this block re-maps every one of those exact
+   classes when a `.dark` class is present on <html>. New pages that
+   reuse the same palette get correct dark mode automatically too.
+--------------------------------------------------------------- */
+
+.dark body {
+  background-color: #0d0f1a;
+}
+
+/* Text - slate scale */
+.dark .text-slate-800 { color: #f1f5f9; }
+.dark .text-slate-700 { color: #e2e8f0; }
+.dark .text-slate-600 { color: #cbd5e1; }
+.dark .text-slate-500 { color: #94a3b8; }
+.dark .text-slate-400 { color: #7c88a0; }
+.dark .text-slate-300 { color: #5b6780; }
+
+/* Surfaces - slate scale */
+.dark .bg-white { background-color: #1a1f30; }
+.dark .bg-white\/70 { background-color: rgba(26, 31, 48, 0.7); }
+.dark .bg-slate-50 { background-color: #202538; }
+.dark .bg-slate-50\/70 { background-color: rgba(255, 255, 255, 0.04); }
+.dark .bg-slate-100 { background-color: #262c42; }
+.dark .bg-slate-200 { background-color: #333b58; }
+
+/* Borders - slate scale */
+.dark .border-white { border-color: #262c42; }
+.dark .border-slate-100 { border-color: #2a3049; }
+.dark .border-slate-200 { border-color: #333b58; }
+.dark .border-slate-300 { border-color: #475569; }
+
+/* Accent tint backgrounds -> translucent versions on dark surfaces */
+.dark .bg-indigo-50 { background-color: rgba(129, 140, 248, 0.16); }
+.dark .bg-indigo-50\/60 { background-color: rgba(129, 140, 248, 0.14); }
+.dark .bg-emerald-50 { background-color: rgba(52, 211, 153, 0.14); }
+.dark .bg-emerald-100 { background-color: rgba(52, 211, 153, 0.2); }
+.dark .bg-amber-50 { background-color: rgba(251, 191, 36, 0.14); }
+.dark .bg-amber-100 { background-color: rgba(251, 191, 36, 0.2); }
+.dark .bg-sky-50 { background-color: rgba(56, 189, 248, 0.14); }
+.dark .bg-rose-50 { background-color: rgba(251, 113, 133, 0.14); }
+.dark .bg-rose-100 { background-color: rgba(251, 113, 133, 0.2); }
+.dark .bg-violet-50 { background-color: rgba(167, 139, 250, 0.16); }
+.dark .bg-orange-50 { background-color: rgba(251, 146, 60, 0.14); }
+
+/* Accent text -> brightened for dark backgrounds */
+.dark .text-indigo-500 { color: #a5b4fc; }
+.dark .text-indigo-600 { color: #a5b4fc; }
+.dark .text-emerald-500 { color: #6ee7b7; }
+.dark .text-emerald-600 { color: #6ee7b7; }
+.dark .text-emerald-700 { color: #a7f3d0; }
+.dark .text-amber-500 { color: #fbbf24; }
+.dark .text-amber-600 { color: #fbbf24; }
+.dark .text-amber-700 { color: #fcd34d; }
+.dark .text-sky-500 { color: #7dd3fc; }
+.dark .text-sky-600 { color: #7dd3fc; }
+.dark .text-sky-700 { color: #bae6fd; }
+.dark .text-rose-500 { color: #fb7185; }
+.dark .text-rose-600 { color: #fb7185; }
+.dark .text-violet-500 { color: #c4b5fd; }
+.dark .text-violet-600 { color: #c4b5fd; }
+.dark .text-orange-400 { color: #fb923c; }
+.dark .text-orange-500 { color: #fb923c; }
+.dark .text-orange-600 { color: #fdba74; }
+
+/* Accent borders */
+.dark .border-indigo-100 { border-color: rgba(129, 140, 248, 0.3); }
+.dark .border-indigo-200 { border-color: rgba(129, 140, 248, 0.4); }
+.dark .border-indigo-500 { border-color: #818cf8; }
+.dark .border-sky-500 { border-color: #38bdf8; }
+
+/* Banner gradients (Roadmap / Skill Gap / Projects CTA cards) */
+.dark .from-violet-50.to-indigo-50 {
+  --tw-gradient-from: #241f3d;
+  --tw-gradient-to: #1c2340;
+  background-image: linear-gradient(to right, #241f3d, #1c2340);
+}
+
+/* Solid dark-navy chips (e.g. sidebar logo badge) stay legible as-is */
+.dark .bg-slate-900 { background-color: #0d0f1a; }
