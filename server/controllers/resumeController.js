@@ -1,17 +1,19 @@
 import fs from "fs";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import Profile from "../models/Profile.js";
 import { extractSkillsFromResume } from "../services/geminiService.js";
 
 // POST /api/resume  (multipart/form-data, field name: "resume")
 export async function uploadResume(req, res) {
+  let parser;
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
     const buffer = fs.readFileSync(req.file.path);
-    const parsedPdf = await pdfParse(buffer);
+    parser = new PDFParse({ data: buffer });
+    const parsedPdf = await parser.getText();
     const resumeText = parsedPdf.text;
 
     if (!resumeText || resumeText.trim().length < 30) {
@@ -47,9 +49,11 @@ export async function uploadResume(req, res) {
 
     await profile.save();
     fs.unlinkSync(req.file.path);
+    await parser.destroy();
 
     res.json({ profile });
   } catch (err) {
+    if (parser) await parser.destroy().catch(() => {});
     if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ message: "Resume processing failed", error: err.message });
   }

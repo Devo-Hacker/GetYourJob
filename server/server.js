@@ -1,10 +1,10 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import connectDB from "./config/db.js";
+import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import connectionsRoutes from "./routes/connectionsRoutes.js";
-import profileRoutes from "./routes/profileRoutes.js";
+import accountRoutes from "./routes/accountRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 
 dotenv.config();
@@ -21,7 +21,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/connections", connectionsRoutes);
-app.use("/api/profile", profileRoutes);
+app.use("/api/account", accountRoutes);
 app.use("/api/projects", projectRoutes);
 
 // Every future feature route gets mounted the same way, e.g.:
