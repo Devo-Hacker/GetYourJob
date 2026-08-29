@@ -7,6 +7,7 @@ import SkillGap from "./pages/SkillGap";
 import Roadmap from "./pages/Roadmap";
 import Connections from "./pages/Connections";
 import Projects from "./pages/Projects";
+import Storage from "./pages/Storage";  
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/connections" element={<Connections />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/storage" element={<Storage/>}/>
         </Route>
       </Routes>
     </BrowserRouter>
