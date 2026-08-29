@@ -17,10 +17,6 @@ import { getSkillGapData } from "../services/skillGapService";
 import { getSkillBoard, updateDesiredSkills } from "../services/skillsService";
 import TargetRoleModal from "../components/TargetRoleModal";
 
-/* ---------------------------------------------
-   Header
---------------------------------------------- */
-
 function SkillGapHeader({ targetRole, onEditRole }) {
   return (
     <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -45,10 +41,6 @@ function SkillGapHeader({ targetRole, onEditRole }) {
   );
 }
 
-/* ---------------------------------------------
-   Tabs
---------------------------------------------- */
-
 const TABS = ["Overview", "Compare Roles", "Recommendations"];
 
 function Tabs({ active, onChange }) {
@@ -71,11 +63,13 @@ function Tabs({ active, onChange }) {
   );
 }
 
-/* ---------------------------------------------
-   Overall skill match summary
---------------------------------------------- */
-
 function OverallMatchCard({ overallMatch, skillsMatched, totalSkills, skillsToImprove, priority }) {
+  const priorityToneClasses = {
+    High: "bg-rose-50 text-rose-500",
+    Medium: "bg-amber-50 text-amber-500",
+    Low: "bg-emerald-50 text-emerald-500",
+  };
+
   return (
     <ClayCard className="p-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 gap-6 items-center">
@@ -103,7 +97,7 @@ function OverallMatchCard({ overallMatch, skillsMatched, totalSkills, skillsToIm
 
         <div>
           <p className="text-[12px] text-slate-400 mb-1">Priority</p>
-          <span className="inline-block text-[12px] font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-500">
+          <span className={`inline-block text-[12px] font-semibold px-2.5 py-1 rounded-full ${priorityToneClasses[priority] || priorityToneClasses.Medium}`}>
             {priority}
           </span>
           <p className="text-[11.5px] text-slate-400 mt-1">to improve match</p>
@@ -122,10 +116,6 @@ function OverallMatchCard({ overallMatch, skillsMatched, totalSkills, skillsToIm
     </ClayCard>
   );
 }
-
-/* ---------------------------------------------
-   Skills overview (strong / developing / needs improvement)
---------------------------------------------- */
 
 function SkillPill({ label, tone, icon }) {
   const tones = {
@@ -193,10 +183,6 @@ function SkillsOverviewCard({ skillOverview }) {
   );
 }
 
-/* ---------------------------------------------
-   Top skills to improve
---------------------------------------------- */
-
 const priorityColors = {
   "High Priority": { bar: "#fb7185", pillBg: "bg-rose-50", pillText: "text-rose-500" },
   "Medium Priority": { bar: "#f59e0b", pillBg: "bg-amber-50", pillText: "text-amber-500" },
@@ -244,10 +230,6 @@ function TopSkillsToImproveCard({ topSkillsToImprove }) {
   );
 }
 
-/* ---------------------------------------------
-   Profile strength
---------------------------------------------- */
-
 function ProfileStrengthCard({ percentage }) {
   return (
     <ClayCard className="p-6 flex flex-col items-center text-center">
@@ -265,10 +247,6 @@ function ProfileStrengthCard({ percentage }) {
     </ClayCard>
   );
 }
-
-/* ---------------------------------------------
-   Recommended next steps
---------------------------------------------- */
 
 const stepIconMap = {
   docker: Container,
@@ -308,10 +286,6 @@ function RecommendedNextStepsCard({ recommendedNextSteps }) {
   );
 }
 
-/* ---------------------------------------------
-   Personalized roadmap banner
---------------------------------------------- */
-
 function PersonalizedRoadmapBanner() {
   const navigate = useNavigate();
   return (
@@ -336,10 +310,6 @@ function PersonalizedRoadmapBanner() {
     </ClayCard>
   );
 }
-
-/* ---------------------------------------------
-   Skill Board - the three real skill sources
---------------------------------------------- */
 
 function BoardSkillPill({ children, tone = "slate" }) {
   const tones = {
@@ -442,10 +412,6 @@ function SkillBoardCard({ platformSkills, resumeSkills, desiredSkills, onAddDesi
   );
 }
 
-/* ---------------------------------------------
-   Page
---------------------------------------------- */
-
 export default function SkillGap() {
   const [data, setData] = useState(null);
   const [board, setBoard] = useState(null);
@@ -476,13 +442,13 @@ export default function SkillGap() {
 
   async function handleAddDesired(skill) {
     const next = [...new Set([...(board.desiredSkills || []), skill])];
-    setBoard((prev) => ({ ...prev, desiredSkills: next })); // optimistic
+    setBoard((prev) => ({ ...prev, desiredSkills: next }));
     await updateDesiredSkills(next);
   }
 
   async function handleRemoveDesired(skill) {
     const next = (board.desiredSkills || []).filter((s) => s !== skill);
-    setBoard((prev) => ({ ...prev, desiredSkills: next })); // optimistic
+    setBoard((prev) => ({ ...prev, desiredSkills: next }));
     await updateDesiredSkills(next);
   }
 

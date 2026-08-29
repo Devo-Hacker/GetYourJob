@@ -9,6 +9,7 @@ import projectRoutes from "./routes/projectRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import storageRoutes from "./routes/storageRoutes.js";
 import skillsRoutes from "./routes/skillsRoutes.js";
+import skillGapRoutes from "./routes/skillGapRoutes.js";
  
 dotenv.config();
 connectDB();
@@ -29,6 +30,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/storage", storageRoutes);
 app.use("/api/skills", skillsRoutes);
+app.use("/api/skill-gap", skillGapRoutes);
  
 // Every future feature route gets mounted the same way, e.g.:
 // app.use("/api/jobs", jobRoutes);
