@@ -6,6 +6,10 @@ const profileSchema = new mongoose.Schema(
 
     targetRole: { type: String, default: "Full-Stack Developer" },
 
+    // Skills the user is manually targeting/learning toward - separate from
+    // skills detected from resume or GitHub activity.
+    desiredSkills: { type: [String], default: [] },
+
     // Every skill knows where it came from, so re-syncing one source
     // (e.g. re-uploading a resume) only replaces that source's skills.
     skills: [

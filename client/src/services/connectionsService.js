@@ -54,6 +54,7 @@ export async function getConnectionsData() {
         name: catalogEntry?.name || c.platform,
         status: "Connected",
         tagline: c.usernameOrUrl,
+        rawStats: c.data || {},
         stats: Object.entries(c.data || {})
           .filter(([, v]) => typeof v === "number" || typeof v === "string")
           .slice(0, 3)

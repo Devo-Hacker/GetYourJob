@@ -14,12 +14,14 @@ import {
 } from "lucide-react";
 import { ClayCard, CircularProgress } from "../components/ui";
 import { getSkillGapData } from "../services/skillGapService";
+import { getSkillBoard, updateDesiredSkills } from "../services/skillsService";
+import TargetRoleModal from "../components/TargetRoleModal";
 
 /* ---------------------------------------------
    Header
 --------------------------------------------- */
 
-function SkillGapHeader({ targetRole }) {
+function SkillGapHeader({ targetRole, onEditRole }) {
   return (
     <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
       <div>
@@ -31,7 +33,10 @@ function SkillGapHeader({ targetRole }) {
 
       <ClayCard className="px-4 py-2.5 min-w-[220px]">
         <p className="text-[11px] font-medium text-slate-400 mb-0.5">Target Role</p>
-        <button className="flex items-center justify-between w-full text-[13.5px] font-semibold text-slate-700">
+        <button
+          onClick={onEditRole}
+          className="flex items-center justify-between w-full text-[13.5px] font-semibold text-slate-700"
+        >
           {targetRole}
           <ChevronDown size={15} className="text-slate-400" />
         </button>
@@ -333,38 +338,173 @@ function PersonalizedRoadmapBanner() {
 }
 
 /* ---------------------------------------------
+   Skill Board - the three real skill sources
+--------------------------------------------- */
+
+function BoardSkillPill({ children, tone = "slate" }) {
+  const tones = {
+    slate: "bg-slate-50 text-slate-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+  };
+  return (
+    <span className={`inline-block px-2.5 py-1 rounded-full text-[11.5px] font-medium ${tones[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+function SkillBoardCard({ platformSkills, resumeSkills, desiredSkills, onAddDesired, onRemoveDesired }) {
+  const [newSkill, setNewSkill] = useState("");
+
+  function handleAdd(e) {
+    e.preventDefault();
+    if (!newSkill.trim()) return;
+    onAddDesired(newSkill.trim());
+    setNewSkill("");
+  }
+
+  return (
+    <ClayCard className="p-6">
+      <p className="text-[14px] font-semibold text-slate-800 mb-1">Skill Board</p>
+      <p className="text-[12px] text-slate-400 mb-4">
+        Every skill source in one place - what your code shows, what your resume says, and what you're aiming for.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div>
+          <p className="text-[11.5px] font-semibold text-slate-500 mb-2">Platform Skills (GitHub)</p>
+          {platformSkills.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {platformSkills.map((s) => (
+                <BoardSkillPill key={s} tone="slate">{s}</BoardSkillPill>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11.5px] text-slate-400">
+              Connect GitHub and push some code to see languages here.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <p className="text-[11.5px] font-semibold text-slate-500 mb-2">Resume Skills</p>
+          {resumeSkills.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {resumeSkills.map((s) => (
+                <BoardSkillPill key={s.name} tone="indigo">{s.name}</BoardSkillPill>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11.5px] text-slate-400">
+              Upload your resume on the Uploads page to extract skills.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <p className="text-[11.5px] font-semibold text-slate-500 mb-2">Desired Skills</p>
+          {desiredSkills.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+              {desiredSkills.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => onRemoveDesired(s)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11.5px] font-medium bg-emerald-50 text-emerald-600"
+                  aria-label={`Remove ${s}`}
+                >
+                  {s} <span className="text-emerald-400">&times;</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11.5px] text-slate-400 mb-2.5">
+              Add skills you're aiming to learn.
+            </p>
+          )}
+          <form onSubmit={handleAdd} className="flex items-center gap-1.5">
+            <input
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              placeholder="e.g. Docker"
+              className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12px] text-slate-800 outline-none focus:border-indigo-400"
+            />
+            <button
+              type="submit"
+              className="px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white text-[11.5px] font-semibold"
+            >
+              Add
+            </button>
+          </form>
+        </div>
+      </div>
+    </ClayCard>
+  );
+}
+
+/* ---------------------------------------------
    Page
 --------------------------------------------- */
 
 export default function SkillGap() {
   const [data, setData] = useState(null);
+  const [board, setBoard] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+
+  async function loadBoard() {
+    const result = await getSkillBoard();
+    setBoard(result);
+  }
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadSkillGap() {
-      const result = await getSkillGapData();
-      if (!cancelled) setData(result);
+    async function loadAll() {
+      const [gapResult, boardResult] = await Promise.all([getSkillGapData(), getSkillBoard()]);
+      if (!cancelled) {
+        setData(gapResult);
+        setBoard(boardResult);
+      }
     }
 
-    loadSkillGap();
+    loadAll();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (!data) {
+  async function handleAddDesired(skill) {
+    const next = [...new Set([...(board.desiredSkills || []), skill])];
+    setBoard((prev) => ({ ...prev, desiredSkills: next })); // optimistic
+    await updateDesiredSkills(next);
+  }
+
+  async function handleRemoveDesired(skill) {
+    const next = (board.desiredSkills || []).filter((s) => s !== skill);
+    setBoard((prev) => ({ ...prev, desiredSkills: next })); // optimistic
+    await updateDesiredSkills(next);
+  }
+
+  if (!data || !board) {
     return <p className="text-[13px] text-slate-400">Loading skill gap analysis...</p>;
   }
 
   return (
     <>
-      <SkillGapHeader targetRole={data.targetRole} />
+      <SkillGapHeader targetRole={board.targetRole} onEditRole={() => setRoleModalOpen(true)} />
       <Tabs active={activeTab} onChange={setActiveTab} />
 
       {activeTab === "Overview" ? (
         <>
+          <SkillBoardCard
+            platformSkills={board.platformSkills}
+            resumeSkills={board.resumeSkills}
+            desiredSkills={board.desiredSkills}
+            onAddDesired={handleAddDesired}
+            onRemoveDesired={handleRemoveDesired}
+          />
+
           <OverallMatchCard
             overallMatch={data.overallMatch}
             skillsMatched={data.skillsMatched}
@@ -396,6 +536,13 @@ export default function SkillGap() {
           </p>
         </ClayCard>
       )}
+
+      <TargetRoleModal
+        open={roleModalOpen}
+        currentRole={board.targetRole}
+        onClose={() => setRoleModalOpen(false)}
+        onSaved={(newRole) => setBoard((prev) => ({ ...prev, targetRole: newRole }))}
+      />
     </>
   );
 }

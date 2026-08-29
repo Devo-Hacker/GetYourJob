@@ -3,19 +3,21 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { PLATFORM_CATALOG, addConnection } from "../services/connectionsService";
 
-export default function AddPlatformModal({ open, onClose, onConnected, presetPlatform }) {
+export default function AddPlatformModal({ open, onClose, onConnected, presetPlatform, initialValue }) {
   const [platform, setPlatform] = useState(presetPlatform || "");
-  const [usernameOrUrl, setUsernameOrUrl] = useState("");
+  const [usernameOrUrl, setUsernameOrUrl] = useState(initialValue || "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const isEditing = !!initialValue;
 
   useEffect(() => {
     if (open) {
       setPlatform(presetPlatform || "");
-      setUsernameOrUrl("");
+      setUsernameOrUrl(initialValue || "");
       setError("");
     }
-  }, [open, presetPlatform]);
+  }, [open, presetPlatform, initialValue]);
 
   if (!open) return null;
 
@@ -48,13 +50,17 @@ export default function AddPlatformModal({ open, onClose, onConnected, presetPla
         className="relative w-full max-w-sm bg-white rounded-[28px] shadow-2xl p-6"
       >
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-slate-800">Connect a Platform</h2>
+          <h2 className="text-lg font-bold text-slate-800">
+            {isEditing ? "Update Username or URL" : "Connect a Platform"}
+          </h2>
           <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-600">
             <X size={20} />
           </button>
         </div>
         <p className="text-[12.5px] text-slate-400 mb-4">
-          GitHub stats are fetched automatically. Other platforms are saved as-is for now.
+          {isEditing
+            ? "Made a typo the first time? Fix it here - this replaces the saved value."
+            : "GitHub stats are fetched automatically. Other platforms are saved as-is for now."}
         </p>
 
         {error && (
@@ -102,7 +108,7 @@ export default function AddPlatformModal({ open, onClose, onConnected, presetPla
             disabled={submitting || !platform}
             className="w-full py-2.5 rounded-2xl bg-indigo-600 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(79,70,229,0.5)] disabled:opacity-60"
           >
-            {submitting ? "Connecting..." : "Connect"}
+            {submitting ? "Saving..." : isEditing ? "Save Changes" : "Connect"}
           </button>
         </form>
       </div>

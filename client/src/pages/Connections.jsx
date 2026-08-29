@@ -342,6 +342,8 @@ import {
   Settings2,
   X,
   ExternalLink,
+  Pencil,
+  BarChart3,
 } from "lucide-react";
 import {
   SiGithub,
@@ -357,6 +359,7 @@ import {
 import { ClayCard, LineChart } from "../components/ui";
 import { getConnectionsData } from "../services/connectionsService";
 import AddPlatformModal from "../components/AddPlatformModal";
+import ManualStatsModal from "../components/ManualStatsModal";
 
 const platformIcons = {
   github: { Icon: SiGithub, bg: "bg-slate-900", text: "text-white" },
@@ -519,10 +522,11 @@ function StatsRow({ stats }) {
    Platform stats detail modal
 --------------------------------------------- */
 
-function PlatformStatsModal({ open, platform, onClose }) {
+function PlatformStatsModal({ open, platform, onClose, onEdit, onUpdateStats }) {
   if (!open || !platform) return null;
 
   const { Icon, bg, text } = platformIcons[platform.id] || {};
+  const isGithub = platform.id === "github";
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -589,24 +593,45 @@ function PlatformStatsModal({ open, platform, onClose }) {
             </p>
 
             <p className="text-[11.5px] text-slate-400 mt-1">
-              Stats sync automatically once your connected account has activity.
+              {isGithub
+                ? "Stats sync automatically once your connected account has activity."
+                : "We don't auto-fetch this platform - add your own stats below."}
             </p>
           </div>
         )}
 
-        {platform.tagline && (
-          <a
-            href={
-              platform.tagline.startsWith("http")
-                ? platform.tagline
-                : `https://${platform.tagline}`
-            }
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-2xl border border-slate-200 text-[12.5px] font-semibold text-slate-600"
+        <div className="flex items-center gap-2">
+          {platform.tagline && (
+            <a
+              href={
+                platform.tagline.startsWith("http")
+                  ? platform.tagline
+                  : `https://${platform.tagline}`
+              }
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-slate-200 text-[12.5px] font-semibold text-slate-600"
+            >
+              View profile <ExternalLink size={13} />
+            </a>
+          )}
+
+          <button
+            onClick={() => onEdit(platform)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-slate-200 text-[12.5px] font-semibold text-indigo-600"
           >
-            View profile <ExternalLink size={13} />
-          </a>
+            <Pencil size={13} /> Edit URL
+          </button>
+        </div>
+
+        {!isGithub && (
+          <button
+            onClick={() => onUpdateStats(platform)}
+            className="w-full mt-2 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-indigo-50 text-[12.5px] font-semibold text-indigo-600"
+          >
+            <BarChart3 size={13} />
+            {platform.stats.length > 0 ? "Update Stats" : "Add Your Stats"}
+          </button>
         )}
       </div>
     </div>,
@@ -879,7 +904,9 @@ export default function Connections() {
   const [data, setData] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [presetPlatform, setPresetPlatform] = useState(null);
+  const [editingValue, setEditingValue] = useState(null);
   const [statsModalPlatform, setStatsModalPlatform] = useState(null);
+  const [manualStatsPlatform, setManualStatsPlatform] = useState(null);
 
   async function loadConnections() {
     const result = await getConnectionsData();
@@ -904,6 +931,14 @@ export default function Connections() {
 
   function openModal(platformId) {
     setPresetPlatform(platformId || null);
+    setEditingValue(null);
+    setModalOpen(true);
+  }
+
+  function openEditModal(platform) {
+    setPresetPlatform(platform.id);
+    setEditingValue(platform.tagline || "");
+    setStatsModalPlatform(null);
     setModalOpen(true);
   }
 
@@ -912,6 +947,11 @@ export default function Connections() {
   }
 
   function closeStatsModal() {
+    setStatsModalPlatform(null);
+  }
+
+  function openManualStats(platform) {
+    setManualStatsPlatform(platform);
     setStatsModalPlatform(null);
   }
 
@@ -961,12 +1001,22 @@ export default function Connections() {
         onClose={() => setModalOpen(false)}
         onConnected={loadConnections}
         presetPlatform={presetPlatform}
+        initialValue={editingValue}
       />
 
       <PlatformStatsModal
         open={!!statsModalPlatform}
         platform={statsModalPlatform}
         onClose={closeStatsModal}
+        onEdit={openEditModal}
+        onUpdateStats={openManualStats}
+      />
+
+      <ManualStatsModal
+        open={!!manualStatsPlatform}
+        platform={manualStatsPlatform}
+        onClose={() => setManualStatsPlatform(null)}
+        onSaved={loadConnections}
       />
     </>
   );
