@@ -11,6 +11,25 @@ import {
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { ClayCard, CircularProgress } from "../components/ui";
 import { getDashboardData } from "../services/dashboardService";
+import { useAuth } from "../context/AuthContext";
+
+// Returns a time-of-day greeting based on the current hour in IST,
+// regardless of what timezone the visitor's device is set to.
+function getGreeting() {
+  const istHour = parseInt(
+    new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Kolkata",
+      hour: "numeric",
+      hour12: false,
+    }),
+    10
+  );
+
+  if (istHour >= 5 && istHour < 12) return "Good morning";
+  if (istHour >= 12 && istHour < 17) return "Good afternoon";
+  if (istHour >= 17 && istHour < 21) return "Good evening";
+  return "Good night";
+}
 
 /* ---------------------------------------------
    Top stat cards
@@ -362,6 +381,7 @@ function ConnectedProfilesBar({ connectedProfiles }) {
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -384,9 +404,9 @@ export default function Dashboard() {
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold text-slate-800">Good morning, {data.user.name}!</h1>
+        <h1 className="text-2xl font-bold text-slate-800">{getGreeting()}, {user?.displayName}!</h1>
         <p className="text-[13px] text-slate-400 mt-1">
-          {data.user.role} · {data.user.location} · {data.user.status}
+          {user?.role} · {data.user.location} · {data.user.status}
         </p>
       </header>
 

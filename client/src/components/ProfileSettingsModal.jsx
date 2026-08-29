@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
   X,
   Camera,
@@ -8,11 +9,8 @@ import {
   Plus,
   LogOut,
 } from "lucide-react";
-import {
-  getAccountData,
-  updateProfile,
-  logout as logoutRequest,
-} from "../services/accountService";
+import { getAccountData, updateProfile } from "../services/accountService";
+import { useAuth } from "../context/AuthContext";
 
 function Avatar({ initial, size = "w-24 h-24 text-3xl" }) {
   return (
@@ -156,6 +154,8 @@ function AccountsCard({ accounts, onLogout, loggingOut }) {
 export default function ProfileSettingsModal({ open, onClose }) {
   const [data, setData] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!open) return;
@@ -184,15 +184,11 @@ export default function ProfileSettingsModal({ open, onClose }) {
     setData((prev) => ({ ...prev, profile: { ...prev.profile, ...updatedProfile } }));
   }
 
-  async function handleLogout() {
+  function handleLogout() {
     setLoggingOut(true);
-    try {
-      await logoutRequest();
-      // TODO: redirect to /login once auth exists.
-      onClose();
-    } finally {
-      setLoggingOut(false);
-    }
+    logout();
+    onClose();
+    navigate("/login");
   }
 
   return createPortal(
