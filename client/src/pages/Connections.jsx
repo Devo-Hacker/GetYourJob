@@ -334,7 +334,6 @@ import {
   Flame,
   TrendingUp,
   Trophy,
-  Clock,
   Code2,
   ChevronRight,
   ChevronDown,
@@ -357,7 +356,7 @@ import {
   SiHackerearth,
 } from "react-icons/si";
 import { ClayCard, LineChart } from "../components/ui";
-import { getConnectionsData } from "../services/connectionsService";
+import { getConnectionsData, removeConnection } from "../services/connectionsService";
 import AddPlatformModal from "../components/AddPlatformModal";
 import ManualStatsModal from "../components/ManualStatsModal";
 
@@ -463,7 +462,7 @@ function StatItem({
 function StatsRow({ stats }) {
   return (
     <ClayCard className="p-5">
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
         <StatItem
           icon={<Flame size={19} />}
           iconBg="bg-violet-50"
@@ -483,8 +482,12 @@ function StatsRow({ stats }) {
           iconText="text-emerald-500"
           value={`${stats.activeThisMonth}%`}
           label="Active This Month"
-          sub={`↑ ${stats.activeChange}% from last month`}
-          subTone="emerald"
+          sub={
+            stats.activeChange === 0
+              ? "Same as last month"
+              : `${stats.activeChange > 0 ? "↑" : "↓"} ${Math.abs(stats.activeChange)}% from last month`
+          }
+          subTone={stats.activeChange >= 0 ? "emerald" : "slate"}
         />
 
         <StatItem
@@ -497,21 +500,12 @@ function StatsRow({ stats }) {
         />
 
         <StatItem
-          icon={<Clock size={19} />}
-          iconBg="bg-sky-50"
-          iconText="text-sky-500"
-          value={`${stats.totalCodingHours} hrs`}
-          label="Total Coding Time"
-          sub="This month"
-        />
-
-        <StatItem
           icon={<Code2 size={19} />}
           iconBg="bg-indigo-50"
           iconText="text-indigo-500"
           value={stats.totalContributions.toLocaleString()}
           label="Total Contributions"
-          sub="This month"
+          sub="Platform updates this month"
         />
       </div>
     </ClayCard>
@@ -522,7 +516,7 @@ function StatsRow({ stats }) {
    Platform stats detail modal
 --------------------------------------------- */
 
-function PlatformStatsModal({ open, platform, onClose, onEdit, onUpdateStats }) {
+function PlatformStatsModal({ open, platform, onClose, onEdit, onUpdateStats, onDisconnect }) {
   if (!open || !platform) return null;
 
   const { Icon, bg, text } = platformIcons[platform.id] || {};
@@ -633,6 +627,13 @@ function PlatformStatsModal({ open, platform, onClose, onEdit, onUpdateStats }) 
             {platform.stats.length > 0 ? "Update Stats" : "Add Your Stats"}
           </button>
         )}
+
+        <button
+          onClick={() => onDisconnect(platform)}
+          className="w-full mt-2 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[12.5px] font-semibold text-rose-500"
+        >
+          <X size={13} /> Disconnect Platform
+        </button>
       </div>
     </div>,
     document.body
@@ -643,44 +644,53 @@ function PlatformStatsModal({ open, platform, onClose, onEdit, onUpdateStats }) 
    Connected / available platform cards
 --------------------------------------------- */
 
-function ConnectedPlatformCard({ platform, onViewStats }) {
+function ConnectedPlatformCard({ platform, onViewStats, onDisconnect }) {
   const { Icon, bg, text } = platformIcons[platform.id] || {};
 
   return (
-    <ClayCard className="p-5">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
+    <ClayCard className="p-5 min-w-0">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
           <div
             className={`w-10 h-10 rounded-xl ${bg} ${text} flex items-center justify-center shrink-0`}
           >
             {Icon && <Icon size={18} />}
           </div>
 
-          <div>
-            <p className="font-semibold text-slate-800 text-[14px]">
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-800 text-[14px] truncate">
               {platform.name}
             </p>
           </div>
         </div>
 
-        <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 shrink-0">
-          {platform.status}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 whitespace-nowrap">
+            {platform.status}
+          </span>
+          <button
+            onClick={() => onDisconnect(platform)}
+            aria-label={`Disconnect ${platform.name}`}
+            className="text-slate-300 hover:text-rose-500 shrink-0"
+          >
+            <X size={15} />
+          </button>
+        </div>
       </div>
 
-      <p className="text-[12px] text-slate-400 mt-2">
+      <p className="text-[12px] text-slate-400 mt-2 truncate" title={platform.tagline}>
         {platform.tagline}
       </p>
 
       {platform.stats.length > 0 ? (
         <div className="grid grid-cols-3 gap-2 mt-4">
           {platform.stats.map((s) => (
-            <div key={s.label}>
-              <p className="text-[15px] font-bold text-slate-800 leading-tight">
+            <div key={s.label} className="min-w-0">
+              <p className="text-[15px] font-bold text-slate-800 leading-tight truncate">
                 {s.value}
               </p>
 
-              <p className="text-[10.5px] text-slate-400 leading-snug">
+              <p className="text-[10.5px] text-slate-400 leading-snug truncate">
                 {s.label}
               </p>
             </div>
@@ -688,7 +698,9 @@ function ConnectedPlatformCard({ platform, onViewStats }) {
         </div>
       ) : (
         <p className="text-[11.5px] text-slate-400 mt-4">
-          No stats synced yet.
+          {platform.id === "github"
+            ? "No stats synced yet."
+            : "We don't auto-sync this platform - add your stats via View Stats below."}
         </p>
       )}
 
@@ -744,6 +756,7 @@ function ConnectedPlatformsSection({
   available,
   onConnect,
   onViewStats,
+  onDisconnect,
 }) {
   return (
     <ClayCard className="p-5">
@@ -763,6 +776,7 @@ function ConnectedPlatformsSection({
             key={p.id}
             platform={p}
             onViewStats={onViewStats}
+            onDisconnect={onDisconnect}
           />
         ))}
 
@@ -955,6 +969,15 @@ export default function Connections() {
     setStatsModalPlatform(null);
   }
 
+  async function handleDisconnect(platform) {
+    if (!window.confirm(`Disconnect ${platform.name}? This removes any stats you've added for it.`)) {
+      return;
+    }
+    await removeConnection(platform.id);
+    setStatsModalPlatform(null);
+    await loadConnections();
+  }
+
   if (!data) {
     return (
       <p className="text-[13px] text-slate-400">
@@ -976,6 +999,7 @@ export default function Connections() {
             available={data.availablePlatforms}
             onConnect={openModal}
             onViewStats={openStatsModal}
+            onDisconnect={handleDisconnect}
           />
         </div>
 
@@ -1010,6 +1034,7 @@ export default function Connections() {
         onClose={closeStatsModal}
         onEdit={openEditModal}
         onUpdateStats={openManualStats}
+        onDisconnect={handleDisconnect}
       />
 
       <ManualStatsModal

@@ -15,7 +15,7 @@ export const PLATFORM_CATALOG = [
 
 export async function getRawConnections() {
   const { data } = await apiClient.get("/connections");
-  return data.connections;
+  return { connections: data.connections, activity: data.activity };
 }
 
 // platform: catalog id, e.g. "github". usernameOrUrl: plain username or full profile URL.
@@ -34,18 +34,16 @@ export async function removeConnection(platform) {
 }
 
 export async function getConnectionsData() {
-  const connections = await getRawConnections();
+  const { connections, activity } = await getRawConnections();
   const connectedIds = connections.map((c) => c.platform);
-  const github = connections.find((c) => c.platform === "github");
 
   return {
     stats: {
-      dayStreak: 0,
-      activeThisMonth: 0,
-      activeChange: 0,
-      achievements: 0,
-      totalCodingHours: 0,
-      totalContributions: github?.data?.publicRepos ?? 0,
+      dayStreak: activity.dayStreak,
+      activeThisMonth: activity.activeThisMonth,
+      activeChange: activity.activeChange,
+      achievements: activity.achievements,
+      totalContributions: activity.totalContributions,
     },
     connectedPlatforms: connections.map((c) => {
       const catalogEntry = PLATFORM_CATALOG.find((p) => p.id === c.platform);

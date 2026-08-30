@@ -2,8 +2,13 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { navItems } from "../config/navItems";
+import { useTheme } from "../context/ThemeContext";
+import logoLight from "../assets/logo-light.png";
+import logoDark from "../assets/logo.dark.png";
 
 export default function Sidebar({ collapsed, onToggleCollapse }) {
+  const { theme } = useTheme();
+  const logoSrc = theme === "dark" ? logoDark : logoLight;
   return (
     <aside
       className={`hidden lg:flex shrink-0 flex-col bg-white border-r border-slate-100 sticky top-0 h-screen overflow-y-auto transition-[width] duration-200 relative ${
@@ -11,12 +16,14 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
       } py-6`}
     >
       <div className={`flex items-center gap-2 mb-8 ${collapsed ? "justify-center px-0" : "px-2"}`}>
-        <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-bold shrink-0">
-          DS
-        </div>
+        <img
+          src={logoSrc}
+          alt="DevSphere logo"
+          className="w-8 h-8 rounded-xl object-contain shrink-0"
+        />
         {!collapsed && (
           <span className="font-semibold text-slate-800 tracking-tight whitespace-nowrap">
-            DevSphere
+            CloseYourGaps
           </span>
         )}
       </div>

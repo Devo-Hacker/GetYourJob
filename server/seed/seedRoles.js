@@ -42,6 +42,8 @@ const roles = [
       { name: "CI/CD", weight: 5 },
       { name: "Git", weight: 6 },
       { name: "Kubernetes", weight: 5 },
+      { name: "Java", weight: 6 },
+      { name: "Spring Boot", weight: 5 },
     ],
   },
   {
@@ -60,7 +62,40 @@ const roles = [
     ],
   },
   {
-    name: "ML Engineer",
+    name: "Mobile Developer",
+    skills: [
+      { name: "React Native", weight: 9 },
+      { name: "Flutter", weight: 8 },
+      { name: "Kotlin", weight: 8 },
+      { name: "Swift", weight: 8 },
+      { name: "Java", weight: 6 },
+      { name: "REST API", weight: 7 },
+      { name: "Git", weight: 6 },
+      { name: "Firebase", weight: 6 },
+      { name: "SQLite", weight: 5 },
+      { name: "CI/CD", weight: 4 },
+      { name: "Testing", weight: 5 },
+      { name: "UI Design", weight: 4 },
+    ],
+  },
+  {
+    name: "UI/UX Designer",
+    skills: [
+      { name: "Figma", weight: 10 },
+      { name: "Wireframing", weight: 9 },
+      { name: "Prototyping", weight: 8 },
+      { name: "User Research", weight: 8 },
+      { name: "Design Systems", weight: 7 },
+      { name: "Usability Testing", weight: 7 },
+      { name: "Adobe XD", weight: 6 },
+      { name: "Sketch", weight: 5 },
+      { name: "HTML/CSS", weight: 5 },
+      { name: "Accessibility", weight: 6 },
+      { name: "Communication", weight: 5 },
+    ],
+  },
+  {
+    name: "Machine Learning Engineer",
     skills: [
       { name: "Python", weight: 10 },
       { name: "Machine Learning", weight: 10 },
@@ -78,6 +113,23 @@ const roles = [
       { name: "AWS", weight: 6 },
       { name: "MLOps", weight: 6 },
       { name: "Jupyter", weight: 4 },
+    ],
+  },
+  {
+    name: "Data Scientist",
+    skills: [
+      { name: "Python", weight: 10 },
+      { name: "Machine Learning", weight: 9 },
+      { name: "Statistics", weight: 9 },
+      { name: "Pandas", weight: 8 },
+      { name: "NumPy", weight: 7 },
+      { name: "SQL", weight: 8 },
+      { name: "Data Visualization", weight: 7 },
+      { name: "Deep Learning", weight: 6 },
+      { name: "R", weight: 5 },
+      { name: "Jupyter", weight: 5 },
+      { name: "A/B Testing", weight: 5 },
+      { name: "Communication", weight: 5 },
     ],
   },
   {
@@ -111,8 +163,18 @@ const roles = [
   },
 ];
 
+// Names that used to be seeded under a different string before a rename -
+// upsert-by-name can't clean these up on its own, so we delete them here.
+const RENAMED_AWAY = ["ML Engineer"];
+
 async function run() {
   await connectDB();
+
+  const { deletedCount } = await Role.deleteMany({ name: { $in: RENAMED_AWAY } });
+  if (deletedCount > 0) {
+    console.log(`Removed ${deletedCount} orphaned role(s) from a prior rename: ${RENAMED_AWAY.join(", ")}`);
+  }
+
   for (const role of roles) {
     await Role.findOneAndUpdate({ name: role.name }, role, { upsert: true });
     console.log(`Seeded: ${role.name}`);

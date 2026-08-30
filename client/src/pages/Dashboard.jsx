@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Briefcase,
   Star,
@@ -35,7 +36,7 @@ function getGreeting() {
    Top stat cards
 --------------------------------------------- */
 
-function RoleReadinessCard({ role, percentage }) {
+function RoleReadinessCard({ role, percentage, onViewDetails }) {
   return (
     <ClayCard className="bg-gradient-to-br from-violet-500 to-purple-600 border-none text-white p-5 flex flex-col justify-between shadow-[0_15px_30px_-10px_rgba(124,58,237,0.45)]">
       <div className="flex items-start justify-between">
@@ -44,25 +45,27 @@ function RoleReadinessCard({ role, percentage }) {
       </div>
       <div className="mt-3">
         <p className="text-lg font-semibold leading-tight">{role}</p>
-        <p className="text-[12px] text-violet-100 mt-1">You are almost there!</p>
+        <p className="text-[12px] text-violet-100 mt-1">
+          {percentage >= 80 ? "You are almost there!" : percentage >= 50 ? "Making solid progress." : "Let's build up your match."}
+        </p>
       </div>
-      <button className="mt-4 text-[12px] font-semibold text-white/95 flex items-center gap-1 self-start">
+      <button onClick={onViewDetails} className="mt-4 text-[12px] font-semibold text-white/95 flex items-center gap-1 self-start">
         View Details <ChevronRight size={13} />
       </button>
     </ClayCard>
   );
 }
 
-function BestMatchJobsCard({ count }) {
+function BestMatchJobsCard({ count, onViewJobs }) {
   return (
     <ClayCard className="bg-emerald-50 border-none p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between">
         <div className="w-9 h-9 rounded-2xl bg-white flex items-center justify-center shadow-sm">
           <Briefcase size={16} className="text-emerald-500" />
         </div>
-        <span className="text-[12px] font-semibold text-emerald-600 flex items-center gap-0.5">
+        <button onClick={onViewJobs} className="text-[12px] font-semibold text-emerald-600 flex items-center gap-0.5">
           View Jobs <ArrowUpRight size={12} />
-        </span>
+        </button>
       </div>
       <div className="mt-3">
         <p className="text-3xl font-bold text-slate-800">{count}</p>
@@ -72,16 +75,16 @@ function BestMatchJobsCard({ count }) {
   );
 }
 
-function SkillsAnalysedCard({ count }) {
+function SkillsAnalysedCard({ count, onViewSkills }) {
   return (
     <ClayCard className="bg-violet-50 border-none p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between">
         <div className="w-9 h-9 rounded-2xl bg-white flex items-center justify-center shadow-sm">
           <Star size={16} className="text-violet-500" />
         </div>
-        <span className="text-[12px] font-semibold text-violet-600 flex items-center gap-0.5">
+        <button onClick={onViewSkills} className="text-[12px] font-semibold text-violet-600 flex items-center gap-0.5">
           View Skills <ArrowUpRight size={12} />
-        </span>
+        </button>
       </div>
       <div className="mt-3">
         <p className="text-3xl font-bold text-slate-800">{count}</p>
@@ -91,7 +94,14 @@ function SkillsAnalysedCard({ count }) {
   );
 }
 
-function ProfileStrengthCard({ percentage }) {
+function ProfileStrengthCard({ percentage, onImprove }) {
+  const message =
+    percentage >= 80
+      ? "Great job! Keep going."
+      : percentage >= 50
+      ? "You're on the right track."
+      : "Let's build up your profile.";
+
   return (
     <ClayCard className="bg-amber-50 border-none p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between">
@@ -99,10 +109,10 @@ function ProfileStrengthCard({ percentage }) {
         <CircularProgress percentage={percentage} size={40} stroke={4} trackColor="#fde9b8" barColor="#f5a524" />
       </div>
       <div className="mt-3">
-        <p className="text-sm font-semibold text-slate-700">Great job! Keep going.</p>
+        <p className="text-sm font-semibold text-slate-700">{message}</p>
         <p className="text-[12px] text-slate-500 mt-0.5">Improve your profile to increase match score.</p>
       </div>
-      <button className="mt-3 text-[12px] font-semibold text-amber-600 flex items-center gap-1 self-start">
+      <button onClick={onImprove} className="mt-3 text-[12px] font-semibold text-amber-600 flex items-center gap-1 self-start">
         Improve Profile <ChevronRight size={13} />
       </button>
     </ClayCard>
@@ -126,42 +136,62 @@ function SkillPill({ label, tone }) {
   );
 }
 
-function SkillOverviewCard({ skillOverview }) {
+function SkillOverviewCard({ skillOverview, onViewAll }) {
+  const isEmpty =
+    skillOverview.strong.length === 0 &&
+    skillOverview.developing.length === 0 &&
+    skillOverview.needsImprovement.length === 0;
+
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-slate-800 text-[15px]">Your Skill Overview</h3>
-        <button className="text-[12px] font-semibold text-indigo-500">View All</button>
+        <button onClick={onViewAll} className="text-[12px] font-semibold text-indigo-500">View All</button>
       </div>
 
-      <div className="space-y-3.5">
-        <div>
-          <p className="text-[11px] font-medium text-slate-400 mb-1.5">Strong Skills</p>
-          <div className="flex flex-wrap gap-2">
-            {skillOverview.strong.map((s) => (
-              <SkillPill key={s} label={s} tone="green" />
-            ))}
+      {isEmpty ? (
+        <p className="text-[12.5px] text-slate-400">
+          Upload a resume or connect GitHub to start analysing your skills.
+        </p>
+      ) : (
+        <div className="space-y-3.5">
+          <div>
+            <p className="text-[11px] font-medium text-slate-400 mb-1.5">Strong Skills</p>
+            <div className="flex flex-wrap gap-2">
+              {skillOverview.strong.length > 0 ? (
+                skillOverview.strong.map((s) => <SkillPill key={s} label={s} tone="green" />)
+              ) : (
+                <span className="text-[11.5px] text-slate-300">None yet</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-slate-400 mb-1.5">Developing Skills</p>
+            <div className="flex flex-wrap gap-2">
+              {skillOverview.developing.length > 0 ? (
+                skillOverview.developing.map((s) => <SkillPill key={s} label={s} tone="amber" />)
+              ) : (
+                <span className="text-[11.5px] text-slate-300">None yet</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-slate-400 mb-1.5">Needs Improvement</p>
+            <div className="flex flex-wrap gap-2">
+              {skillOverview.needsImprovement.length > 0 ? (
+                skillOverview.needsImprovement.map((s) => <SkillPill key={s} label={s} tone="red" />)
+              ) : (
+                <span className="text-[11.5px] text-slate-300">None yet</span>
+              )}
+            </div>
           </div>
         </div>
-        <div>
-          <p className="text-[11px] font-medium text-slate-400 mb-1.5">Developing Skills</p>
-          <div className="flex flex-wrap gap-2">
-            {skillOverview.developing.map((s) => (
-              <SkillPill key={s} label={s} tone="amber" />
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="text-[11px] font-medium text-slate-400 mb-1.5">Needs Improvement</p>
-          <div className="flex flex-wrap gap-2">
-            {skillOverview.needsImprovement.map((s) => (
-              <SkillPill key={s} label={s} tone="red" />
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
 
-      <button className="mt-5 w-full py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(124,58,237,0.5)]">
+      <button
+        onClick={onViewAll}
+        className="mt-5 w-full py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(124,58,237,0.5)]"
+      >
         View Skill Gap Analysis
       </button>
     </ClayCard>
@@ -192,21 +222,30 @@ function JobRow({ title, company, location, match }) {
   );
 }
 
-function TopJobsCard({ topJobs }) {
+function TopJobsCard({ topJobs, onViewAll }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-slate-800 text-[15px]">Top Recommended Jobs</h3>
-        <button className="text-[12px] font-semibold text-indigo-500">View All</button>
+        <button onClick={onViewAll} className="text-[12px] font-semibold text-indigo-500">View All</button>
       </div>
 
-      <div className="divide-y divide-slate-100">
-        {topJobs.map((job) => (
-          <JobRow key={job.title + job.company} {...job} />
-        ))}
-      </div>
+      {topJobs.length > 0 ? (
+        <div className="divide-y divide-slate-100">
+          {topJobs.map((job) => (
+            <JobRow key={job.title + job.company} {...job} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-[12.5px] text-slate-400 py-3">
+          No live job matches right now - check back soon or adjust your target role.
+        </p>
+      )}
 
-      <button className="mt-4 w-full py-2.5 rounded-2xl bg-rose-400 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(251,113,133,0.6)]">
+      <button
+        onClick={onViewAll}
+        className="mt-4 w-full py-2.5 rounded-2xl bg-rose-400 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(251,113,133,0.6)]"
+      >
         Explore More Jobs
       </button>
     </ClayCard>
@@ -238,21 +277,30 @@ function GapBar({ label, value, priority }) {
   );
 }
 
-function SkillGapsCard({ skillGaps }) {
+function SkillGapsCard({ skillGaps, onViewAll }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-slate-800 text-[15px]">Skill Gaps</h3>
-        <button className="text-[12px] font-semibold text-indigo-500">View All</button>
+        <button onClick={onViewAll} className="text-[12px] font-semibold text-indigo-500">View All</button>
       </div>
 
-      <div className="space-y-3.5">
-        {skillGaps.map((gap) => (
-          <GapBar key={gap.label} {...gap} />
-        ))}
-      </div>
+      {skillGaps.length > 0 ? (
+        <div className="space-y-3.5">
+          {skillGaps.map((gap) => (
+            <GapBar key={gap.label} {...gap} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-[12.5px] text-slate-400">
+          No gaps detected for this role yet - nice work.
+        </p>
+      )}
 
-      <button className="mt-5 w-full py-2.5 rounded-2xl bg-cyan-400 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(34,211,238,0.55)]">
+      <button
+        onClick={onViewAll}
+        className="mt-5 w-full py-2.5 rounded-2xl bg-cyan-400 text-white text-[13px] font-semibold shadow-[0_10px_20px_-8px_rgba(34,211,238,0.55)]"
+      >
         Improve These Skills
       </button>
     </ClayCard>
@@ -274,7 +322,7 @@ function RecoRow({ text }) {
   );
 }
 
-function AIRecommendationsCard({ aiRecommendations }) {
+function AIRecommendationsCard({ aiRecommendations, onViewAll }) {
   return (
     <ClayCard className="bg-rose-50 border-none p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -288,7 +336,7 @@ function AIRecommendationsCard({ aiRecommendations }) {
         ))}
       </div>
 
-      <button className="mt-4 text-[12.5px] font-semibold text-rose-500 flex items-center gap-1">
+      <button onClick={onViewAll} className="mt-4 text-[12.5px] font-semibold text-rose-500 flex items-center gap-1">
         View Full Recommendations <ChevronRight size={13} />
       </button>
     </ClayCard>
@@ -299,7 +347,7 @@ function AIRecommendationsCard({ aiRecommendations }) {
    Recent projects
 --------------------------------------------- */
 
-function ProjectRow({ name, stack, updated }) {
+function ProjectRow({ name, stack, updated, link, onNoLink }) {
   return (
     <div className="flex items-center gap-3 py-2.5">
       <div className="w-9 h-9 rounded-2xl bg-slate-100 shrink-0" />
@@ -308,25 +356,45 @@ function ProjectRow({ name, stack, updated }) {
         <p className="text-[11.5px] text-slate-400 truncate">{stack}</p>
         <p className="text-[10.5px] text-slate-300">{updated}</p>
       </div>
-      <button className="shrink-0 text-[11.5px] font-semibold text-white bg-emerald-400 px-3 py-1.5 rounded-full">
-        View Project
-      </button>
+      {link ? (
+        <a
+          href={link}
+          target="_blank"
+          rel="noreferrer"
+          className="shrink-0 text-[11.5px] font-semibold text-white bg-emerald-400 px-3 py-1.5 rounded-full"
+        >
+          View Project
+        </a>
+      ) : (
+        <button
+          onClick={onNoLink}
+          className="shrink-0 text-[11.5px] font-semibold text-white bg-emerald-400 px-3 py-1.5 rounded-full"
+        >
+          View Project
+        </button>
+      )}
     </div>
   );
 }
 
-function RecentProjectsCard({ recentProjects }) {
+function RecentProjectsCard({ recentProjects, onViewAll }) {
   return (
     <ClayCard className="p-5">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-slate-800 text-[15px]">Recent Projects</h3>
-        <button className="text-[12px] font-semibold text-indigo-500">View All</button>
+        <button onClick={onViewAll} className="text-[12px] font-semibold text-indigo-500">View All</button>
       </div>
-      <div className="divide-y divide-slate-100">
-        {recentProjects.map((project) => (
-          <ProjectRow key={project.name} {...project} />
-        ))}
-      </div>
+      {recentProjects.length > 0 ? (
+        <div className="divide-y divide-slate-100">
+          {recentProjects.map((project) => (
+            <ProjectRow key={project.name} {...project} onNoLink={onViewAll} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-[12.5px] text-slate-400 py-3">
+          No projects yet - add one from the Uploads page.
+        </p>
+      )}
     </ClayCard>
   );
 }
@@ -343,7 +411,7 @@ const profileIconMap = {
 };
 
 function ConnectedBadge({ label }) {
-  const { icon: Icon, iconBg, iconColor } = profileIconMap[label] || {};
+  const { icon: Icon, iconBg, iconColor } = profileIconMap[label] || { icon: Code2, iconBg: "bg-slate-100", iconColor: "text-slate-500" };
   return (
     <div className="flex items-center gap-2">
       <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${iconBg}`}>
@@ -359,16 +427,18 @@ function ConnectedBadge({ label }) {
   );
 }
 
-function ConnectedProfilesBar({ connectedProfiles }) {
+function ConnectedProfilesBar({ connectedProfiles, onManage }) {
   return (
     <ClayCard className="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
       <div className="flex flex-wrap items-center gap-6">
         <span className="text-[13px] font-semibold text-slate-500 hidden sm:inline">Connected Profiles</span>
-        {connectedProfiles.map((label) => (
-          <ConnectedBadge key={label} label={label} />
-        ))}
+        {connectedProfiles.length > 0 ? (
+          connectedProfiles.map((label) => <ConnectedBadge key={label} label={label} />)
+        ) : (
+          <span className="text-[12.5px] text-slate-400">No platforms connected yet.</span>
+        )}
       </div>
-      <button className="px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-[12.5px] font-semibold">
+      <button onClick={onManage} className="px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-[12.5px] font-semibold">
         Manage Connections
       </button>
     </ClayCard>
@@ -382,6 +452,7 @@ function ConnectedProfilesBar({ connectedProfiles }) {
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
@@ -401,34 +472,38 @@ export default function Dashboard() {
     return <p className="text-[13px] text-slate-400">Loading dashboard...</p>;
   }
 
+  const subline = [user?.role, data.user.location, data.user.status].filter(Boolean).join(" · ");
+
   return (
     <>
       <header>
         <h1 className="text-2xl font-bold text-slate-800">{getGreeting()}, {user?.displayName}!</h1>
-        <p className="text-[13px] text-slate-400 mt-1">
-          {user?.role} · {data.user.location} · {data.user.status}
-        </p>
+        {subline && <p className="text-[13px] text-slate-400 mt-1">{subline}</p>}
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        <RoleReadinessCard role={data.roleReadiness.role} percentage={data.roleReadiness.percentage} />
-        <BestMatchJobsCard count={data.bestMatchJobs} />
-        <SkillsAnalysedCard count={data.skillsAnalysed} />
-        <ProfileStrengthCard percentage={data.profileStrength} />
+        <RoleReadinessCard
+          role={data.roleReadiness.role}
+          percentage={data.roleReadiness.percentage}
+          onViewDetails={() => navigate("/skill-gap")}
+        />
+        <BestMatchJobsCard count={data.bestMatchJobs} onViewJobs={() => navigate("/jobs")} />
+        <SkillsAnalysedCard count={data.skillsAnalysed} onViewSkills={() => navigate("/skill-gap")} />
+        <ProfileStrengthCard percentage={data.profileStrength} onImprove={() => navigate("/uploads")} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <SkillOverviewCard skillOverview={data.skillOverview} />
-        <TopJobsCard topJobs={data.topJobs} />
-        <SkillGapsCard skillGaps={data.skillGaps} />
+        <SkillOverviewCard skillOverview={data.skillOverview} onViewAll={() => navigate("/skill-gap")} />
+        <TopJobsCard topJobs={data.topJobs} onViewAll={() => navigate("/jobs")} />
+        <SkillGapsCard skillGaps={data.skillGaps} onViewAll={() => navigate("/skill-gap")} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <AIRecommendationsCard aiRecommendations={data.aiRecommendations} />
-        <RecentProjectsCard recentProjects={data.recentProjects} />
+        <AIRecommendationsCard aiRecommendations={data.aiRecommendations} onViewAll={() => navigate("/skill-gap")} />
+        <RecentProjectsCard recentProjects={data.recentProjects} onViewAll={() => navigate("/uploads")} />
       </div>
 
-      <ConnectedProfilesBar connectedProfiles={data.connectedProfiles} />
+      <ConnectedProfilesBar connectedProfiles={data.connectedProfiles} onManage={() => navigate("/connections")} />
     </>
   );
 }

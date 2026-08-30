@@ -1,5 +1,6 @@
 import PlatformProfile from "../models/PlatformProfile.js";
 import { fetchGithubStats } from "../services/githubService.js";
+import { computeActivityStats, logSync } from "../services/activityStats.js";
 
 // POST /api/connections  { platform, usernameOrUrl }
 // Adds or re-syncs a platform. GitHub is fetched live via its public API.
@@ -31,6 +32,8 @@ export async function saveConnection(req, res) {
       { upsert: true, new: true }
     );
 
+    await logSync(req.user._id, platform, "connect");
+
     res.json({ connection });
   } catch (err) {
     res.status(500).json({ message: "Failed to save connection", error: err.message });
@@ -50,6 +53,8 @@ export async function updateManualStats(req, res) {
       { upsert: true, new: true }
     );
 
+    await logSync(req.user._id, platform, "stats_update");
+
     res.json({ connection });
   } catch (err) {
     res.status(500).json({ message: "Failed to update stats", error: err.message });
@@ -59,7 +64,8 @@ export async function updateManualStats(req, res) {
 // GET /api/connections
 export async function getConnections(req, res) {
   const connections = await PlatformProfile.find({ user: req.user._id });
-  res.json({ connections });
+  const activity = await computeActivityStats(req.user._id, connections.length);
+  res.json({ connections, activity });
 }
 
 // DELETE /api/connections/:platform

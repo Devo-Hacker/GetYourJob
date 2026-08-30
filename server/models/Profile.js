@@ -6,6 +6,11 @@ const profileSchema = new mongoose.Schema(
 
     targetRole: { type: String, default: "Full-Stack Developer" },
 
+    // Free-text, user-editable later - blank by default rather than
+    // faking a location/status the user never provided.
+    location: { type: String, default: "" },
+    status: { type: String, default: "" },
+
     // Skills the user is manually targeting/learning toward - separate from
     // skills detected from resume or GitHub activity.
     desiredSkills: { type: [String], default: [] },
