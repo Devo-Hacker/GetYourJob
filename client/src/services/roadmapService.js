@@ -5,18 +5,26 @@ export async function getRoadmapData() {
   return data;
 }
 
-export async function createPlaylistFolder(name, progress) {
-  const { data } = await apiClient.post("/roadmap/playlist", { name, progress });
+export async function createPlaylistItem(name, type, parentId = null, url = "") {
+  const { data } = await apiClient.post("/roadmap/playlist/item", {
+    name,
+    type,
+    parentId,
+    url,
+  });
   return data;
 }
 
-export async function addVideoToPlaylist(folderId, title, url) {
-  const { data } = await apiClient.post("/roadmap/playlist/video", { folderId, title, url });
+export async function updatePlaylistItem(id, updates) {
+  const { data } = await apiClient.put("/roadmap/playlist/item", {
+    id,
+    ...updates,
+  });
   return data;
 }
 
-export async function updateFolderProgress(folderId, progress) {
-  const { data } = await apiClient.put("/roadmap/playlist/progress", { folderId, progress });
+export async function deletePlaylistItem(id) {
+  const { data } = await apiClient.delete(`/roadmap/playlist/item/${id}`);
   return data;
 }
 

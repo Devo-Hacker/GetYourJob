@@ -2,18 +2,18 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   getRoadmap,
-  createPlaylistFolder,
-  addVideoToPlaylist,
-  updateFolderProgress,
+  createPlaylistItem,
+  updatePlaylistItem,
+  deletePlaylistItem,
   updateDailyTask,
 } from "../controllers/roadmapController.js";
 
 const router = express.Router();
 
 router.get("/", protect, getRoadmap);
-router.post("/playlist", protect, createPlaylistFolder);
-router.post("/playlist/video", protect, addVideoToPlaylist);
-router.put("/playlist/progress", protect, updateFolderProgress);
+router.post("/playlist/item", protect, createPlaylistItem);
+router.put("/playlist/item", protect, updatePlaylistItem);
+router.delete("/playlist/item/:id", protect, deletePlaylistItem);
 router.put("/task", protect, updateDailyTask);
 
 export default router;
