@@ -31,7 +31,7 @@ function ProfileMenu() {
 
   function handleLogout() {
     setOpen(false);
-    logout();
+    logout(); // clears token/user from AuthContext + localStorage
     navigate("/login");
   }
 
