@@ -20,14 +20,26 @@ import {
   File as FileIcon,
   Trash2,
   ArrowLeft,
+  Eye,
+  Download,
+  Edit2,
+  Move,
 } from "lucide-react";
 import { ClayCard } from "../components/ui";
 import NewFolderModal from "../components/NewFolderModal";
+import RenameModal from "../components/RenameModal";
+import MoveItemModal from "../components/MoveItemModal";
 import {
   getStorageData,
   uploadFiles,
   deleteFile,
   deleteFolder,
+  renameFile,
+  moveFile,
+  renameFolder,
+  moveFolder,
+  getFileViewUrl,
+  searchStorage,
   formatBytes,
 } from "../services/storageService";
 
@@ -40,6 +52,63 @@ const TYPE_ICON = {
   code: Code2,
   other: FileIcon,
 };
+
+/* ---------------------------------------------
+   "New" split button - now a real dropdown
+--------------------------------------------- */
+
+function NewMenu({ onNewFolder, onUploadClick }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative shrink-0">
+      <div className="flex items-stretch rounded-2xl bg-indigo-600 text-white shadow-[0_10px_20px_-8px_rgba(79,70,229,0.5)] overflow-hidden">
+        <button
+          onClick={() => {
+            setOpen(false);
+            onNewFolder();
+          }}
+          className="px-4 py-2.5 text-[13px] font-semibold flex items-center gap-1.5"
+        >
+          <Plus size={15} /> New
+        </button>
+        <button
+          onClick={() => setOpen((o) => !o)}
+          aria-label="More new options"
+          className="px-2.5 flex items-center border-l border-white/25"
+        >
+          <ChevronDown size={14} />
+        </button>
+      </div>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-slate-100 rounded-xl shadow-[0_10px_30px_-10px_rgba(76,29,149,0.2)] p-1.5 z-20">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onNewFolder();
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <FolderPlus size={14} /> New Folder
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onUploadClick();
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <Upload size={14} /> Upload Files
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 /* ---------------------------------------------
    Header + toolbar
@@ -73,17 +142,7 @@ function StorageHeader({ search, onSearchChange, onUploadClick, onNewFolder }) {
           <Upload size={15} /> Upload
         </button>
 
-        <button
-          onClick={onNewFolder}
-          className="flex items-stretch rounded-2xl bg-indigo-600 text-white shadow-[0_10px_20px_-8px_rgba(79,70,229,0.5)] shrink-0 overflow-hidden"
-        >
-          <span className="px-4 py-2.5 text-[13px] font-semibold flex items-center gap-1.5">
-            <Plus size={15} /> New
-          </span>
-          <span className="px-2.5 flex items-center border-l border-white/25">
-            <ChevronDown size={14} />
-          </span>
-        </button>
+        <NewMenu onNewFolder={onNewFolder} onUploadClick={onUploadClick} />
       </div>
     </header>
   );
@@ -128,56 +187,35 @@ function Breadcrumbs({ crumbs, onNavigate }) {
 function EmptyStateArt() {
   return (
     <svg viewBox="0 0 400 300" className="w-72 sm:w-80 h-auto mx-auto mb-2">
-      {/* soft background blob */}
       <ellipse cx="200" cy="155" rx="175" ry="128" fill="#EFEDFB" />
-
-      {/* faint dots */}
       <circle cx="52" cy="95" r="4" fill="#D9D5F6" />
       <circle cx="352" cy="120" r="4" fill="#D9D5F6" />
       <circle cx="60" cy="235" r="4" fill="#D9D5F6" />
       <circle cx="342" cy="228" r="3" fill="#D9D5F6" />
       <circle cx="315" cy="165" r="9" fill="none" stroke="#D9D5F6" strokeWidth="2" />
-
-      {/* expand / focus icon, left side */}
       <g stroke="#B9B4E3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
         <path d="M82 150 L70 138 M70 138 L70 146 M70 138 L78 138" />
         <path d="M82 170 L70 182 M70 182 L70 174 M70 182 L78 182" />
       </g>
-
-      {/* sparkles */}
-      <path
-        d="M298 68 L302 78 L312 82 L302 86 L298 96 L294 86 L284 82 L294 78 Z"
-        fill="#C3BCF2"
-      />
-      <path
-        d="M320 208 L323 215 L330 218 L323 221 L320 228 L317 221 L310 218 L317 215 Z"
-        fill="#C3BCF2"
-      />
-
-      {/* document card (behind, top-left) */}
+      <path d="M298 68 L302 78 L312 82 L302 86 L298 96 L294 86 L284 82 L294 78 Z" fill="#C3BCF2" />
+      <path d="M320 208 L323 215 L330 218 L323 221 L320 228 L317 221 L310 218 L317 215 Z" fill="#C3BCF2" />
       <g transform="rotate(-9 130 135)">
         <rect x="85" y="78" width="92" height="114" rx="14" fill="#FFFFFF" />
         <rect x="102" y="102" width="58" height="7" rx="3.5" fill="#E2E5F0" />
         <rect x="102" y="118" width="58" height="7" rx="3.5" fill="#E2E5F0" />
         <rect x="102" y="134" width="40" height="7" rx="3.5" fill="#E2E5F0" />
       </g>
-
-      {/* image card (behind, top-center) */}
       <g transform="rotate(-2 213 118)">
         <rect x="165" y="63" width="96" height="88" rx="14" fill="#FFFFFF" />
         <rect x="181" y="79" width="64" height="56" rx="8" fill="#DCEAFE" />
         <circle cx="196" cy="94" r="6" fill="#93C5FD" />
         <path d="M181 128 L200 105 L215 120 L228 108 L245 128 Z" fill="#5B9CF6" />
       </g>
-
-      {/* play / video card (behind, top-right) */}
       <g transform="rotate(9 305 122)">
         <rect x="268" y="88" width="74" height="74" rx="14" fill="#FFFFFF" />
         <circle cx="305" cy="125" r="21" fill="#7C6FF0" />
         <path d="M299 115 L316 125 L299 135 Z" fill="#FFFFFF" />
       </g>
-
-      {/* open folder (front-most) */}
       <g>
         <rect x="148" y="150" width="66" height="24" rx="9" fill="#6C5BD1" />
         <rect x="140" y="163" width="180" height="98" rx="18" fill="#6C5BD1" />
@@ -224,10 +262,62 @@ function EmptyState({ onUploadClick, onNewFolder, inFolder }) {
 }
 
 /* ---------------------------------------------
-   Folder row
+   Folder row + its three-dot menu
 --------------------------------------------- */
 
-function FolderRow({ folder, onOpen, onDelete }) {
+function FolderRowMenu({ folder, onRename, onMove, onDelete }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Folder options"
+        className="text-slate-400 hover:text-slate-600 p-1"
+      >
+        <MoreHorizontal size={15} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-100 rounded-xl shadow-[0_10px_30px_-10px_rgba(76,29,149,0.2)] p-1.5 z-20">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onRename(folder);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <Edit2 size={13} /> Rename
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onMove(folder);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <Move size={13} /> Move to...
+            </button>
+            <div className="border-t border-slate-100 my-1" />
+            <button
+              onClick={() => {
+                setOpen(false);
+                onDelete(folder);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-rose-500 hover:bg-rose-50 flex items-center gap-2"
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FolderRow({ folder, onOpen, onRename, onMove, onDelete }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-50 cursor-pointer"
@@ -240,47 +330,106 @@ function FolderRow({ folder, onOpen, onDelete }) {
         <p className="text-[13.5px] font-medium text-slate-800 truncate">{folder.name}</p>
         <p className="text-[11.5px] text-slate-400">Folder</p>
       </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(folder.id);
-        }}
-        className="text-slate-400 hover:text-red-500 shrink-0"
-        aria-label="Delete folder"
-      >
-        <Trash2 size={15} />
-      </button>
+      <FolderRowMenu folder={folder} onRename={onRename} onMove={onMove} onDelete={onDelete} />
     </div>
   );
 }
 
 /* ---------------------------------------------
-   File row
+   File row + its three-dot menu
 --------------------------------------------- */
 
-function FileRow({ file, onDelete }) {
+function FileRowMenu({ file, onView, onDownload, onRename, onMove, onDelete }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="File options"
+        className="text-slate-400 hover:text-slate-600 p-1"
+      >
+        <MoreHorizontal size={15} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-100 rounded-xl shadow-[0_10px_30px_-10px_rgba(76,29,149,0.2)] p-1.5 z-20">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onView(file);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <Eye size={13} /> View
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onDownload(file);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <Download size={13} /> Download
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onRename(file);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <Edit2 size={13} /> Rename
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onMove(file);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            >
+              <Move size={13} /> Move to...
+            </button>
+            <div className="border-t border-slate-100 my-1" />
+            <button
+              onClick={() => {
+                setOpen(false);
+                onDelete(file);
+              }}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-rose-500 hover:bg-rose-50 flex items-center gap-2"
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FileRow({ file, onView, onDownload, onRename, onMove, onDelete }) {
   const Icon = TYPE_ICON[file.type] || FileIcon;
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-50">
       <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0">
         <Icon size={16} />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onView(file)}>
         <p className="text-[13.5px] font-medium text-slate-800 truncate">{file.name}</p>
         <p className="text-[11.5px] text-slate-400">
           {formatBytes(file.sizeBytes)} · {new Date(file.updatedAt).toLocaleDateString()}
         </p>
       </div>
-      <button
-        onClick={() => onDelete(file.id)}
-        className="text-slate-400 hover:text-red-500 shrink-0"
-        aria-label="Delete file"
-      >
-        <Trash2 size={15} />
-      </button>
-      <button className="text-slate-400 hover:text-slate-600 shrink-0" aria-label="More options">
-        <MoreHorizontal size={15} />
-      </button>
+      <FileRowMenu
+        file={file}
+        onView={onView}
+        onDownload={onDownload}
+        onRename={onRename}
+        onMove={onMove}
+        onDelete={onDelete}
+      />
     </div>
   );
 }
@@ -292,37 +441,50 @@ function FileRow({ file, onDelete }) {
 function MyStorageCard({
   folders,
   files,
-  search,
+  isSearching,
+  searchQuery,
   crumbs,
   onNavigate,
   onOpenFolder,
   onUploadClick,
   onNewFolder,
   onRefresh,
+  onViewFile,
+  onDownloadFile,
+  onRenameFile,
+  onMoveFile,
   onDeleteFile,
+  onRenameFolder,
+  onMoveFolder,
   onDeleteFolder,
 }) {
-  const q = search.trim().toLowerCase();
-  const filteredFolders = q ? folders.filter((f) => f.name.toLowerCase().includes(q)) : folders;
-  const filteredFiles = q ? files.filter((f) => f.name.toLowerCase().includes(q)) : files;
-  const isEmpty = filteredFolders.length === 0 && filteredFiles.length === 0;
+  const isEmpty = folders.length === 0 && files.length === 0;
 
   return (
     <ClayCard className="p-0 overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50 gap-3">
         <div className="flex items-center gap-2 text-slate-700 font-semibold text-[14px] min-w-0">
-          {crumbs.length > 0 ? (
-            <button
-              onClick={() => onNavigate(crumbs.length > 1 ? crumbs[crumbs.length - 2].id : null)}
-              className="text-slate-400 hover:text-slate-600 shrink-0"
-              aria-label="Back"
-            >
-              <ArrowLeft size={16} />
-            </button>
+          {isSearching ? (
+            <>
+              <Search size={16} className="text-slate-400 shrink-0" />
+              <span className="truncate">Results for "{searchQuery}"</span>
+            </>
           ) : (
-            <Monitor size={16} className="text-slate-400 shrink-0" />
+            <>
+              {crumbs.length > 0 ? (
+                <button
+                  onClick={() => onNavigate(crumbs.length > 1 ? crumbs[crumbs.length - 2].id : null)}
+                  className="text-slate-400 hover:text-slate-600 shrink-0"
+                  aria-label="Back"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+              ) : (
+                <Monitor size={16} className="text-slate-400 shrink-0" />
+              )}
+              <Breadcrumbs crumbs={crumbs} onNavigate={onNavigate} />
+            </>
           )}
-          <Breadcrumbs crumbs={crumbs} onNavigate={onNavigate} />
         </div>
         <div className="flex items-center gap-3 text-slate-400 shrink-0">
           <button onClick={onRefresh} aria-label="Refresh" className="hover:text-slate-600">
@@ -336,18 +498,35 @@ function MyStorageCard({
 
       <div className="px-6 py-2">
         {isEmpty ? (
-          <EmptyState
-            onUploadClick={onUploadClick}
-            onNewFolder={onNewFolder}
-            inFolder={crumbs.length > 0}
-          />
+          isSearching ? (
+            <p className="text-[13px] text-slate-400 text-center py-10">
+              No files or folders match "{searchQuery}".
+            </p>
+          ) : (
+            <EmptyState onUploadClick={onUploadClick} onNewFolder={onNewFolder} inFolder={crumbs.length > 0} />
+          )
         ) : (
           <div className="py-2 flex flex-col divide-y divide-slate-50">
-            {filteredFolders.map((f) => (
-              <FolderRow key={f.id} folder={f} onOpen={onOpenFolder} onDelete={onDeleteFolder} />
+            {folders.map((f) => (
+              <FolderRow
+                key={f.id}
+                folder={f}
+                onOpen={onOpenFolder}
+                onRename={onRenameFolder}
+                onMove={onMoveFolder}
+                onDelete={onDeleteFolder}
+              />
             ))}
-            {filteredFiles.map((f) => (
-              <FileRow key={f.id} file={f} onDelete={onDeleteFile} />
+            {files.map((f) => (
+              <FileRow
+                key={f.id}
+                file={f}
+                onView={onViewFile}
+                onDownload={onDownloadFile}
+                onRename={onRenameFile}
+                onMove={onMoveFile}
+                onDelete={onDeleteFile}
+              />
             ))}
           </div>
         )}
@@ -433,8 +612,13 @@ export default function Storage() {
   const [data, setData] = useState(null);
   const [currentFolderId, setCurrentFolderId] = useState(null);
   const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState(null); // null = not searching
   const [uploading, setUploading] = useState(false);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
+
+  const [renameTarget, setRenameTarget] = useState(null); // { kind, id, name }
+  const [moveTarget, setMoveTarget] = useState(null); // { kind, id, name }
+
   const fileInputRef = useRef(null);
 
   async function load(folderId = currentFolderId) {
@@ -452,6 +636,31 @@ export default function Storage() {
       cancelled = true;
     };
   }, [currentFolderId]);
+
+  // Debounced global search across the whole storage tree - runs
+  // independently of whichever folder happens to be open.
+  useEffect(() => {
+    const q = search.trim();
+    if (!q) {
+      setSearchResults(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const result = await searchStorage(q);
+      if (!cancelled) setSearchResults(result);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search]);
+
+  function refreshSearch() {
+    const q = search.trim();
+    if (!q) return;
+    searchStorage(q).then(setSearchResults);
+  }
 
   function handleUploadClick() {
     fileInputRef.current?.click();
@@ -474,23 +683,73 @@ export default function Storage() {
     setFolderModalOpen(true);
   }
 
-  async function handleDeleteFile(id) {
-    await deleteFile(id);
-    await load();
+  async function handleDeleteFile(file) {
+    if (!window.confirm(`Delete "${file.name}"? This can't be undone.`)) return;
+    await deleteFile(file.id);
+    if (searchResults) refreshSearch();
+    else await load();
   }
 
-  async function handleDeleteFolder(id) {
-    await deleteFolder(id);
-    await load();
+  async function handleDeleteFolder(folder) {
+    if (!window.confirm(`Delete "${folder.name}" and everything inside it? This can't be undone.`)) return;
+    await deleteFolder(folder.id);
+    if (searchResults) refreshSearch();
+    else await load();
+  }
+
+  function handleViewFile(file) {
+    window.open(getFileViewUrl(file.id), "_blank", "noopener,noreferrer");
+  }
+
+  function handleDownloadFile(file) {
+    window.open(getFileViewUrl(file.id, { download: true }), "_blank", "noopener,noreferrer");
+  }
+
+  function handleRenameFile(file) {
+    setRenameTarget({ kind: "file", id: file.id, name: file.name });
+  }
+
+  function handleRenameFolder(folder) {
+    setRenameTarget({ kind: "folder", id: folder.id, name: folder.name });
+  }
+
+  async function handleRenameSave(newName) {
+    if (renameTarget.kind === "file") {
+      await renameFile(renameTarget.id, newName);
+    } else {
+      await renameFolder(renameTarget.id, newName);
+    }
+    if (searchResults) refreshSearch();
+    else await load();
+  }
+
+  function handleMoveFile(file) {
+    setMoveTarget({ kind: "file", id: file.id, name: file.name });
+  }
+
+  function handleMoveFolder(folder) {
+    setMoveTarget({ kind: "folder", id: folder.id, name: folder.name });
+  }
+
+  async function handleMoveConfirm(destinationFolderId) {
+    if (moveTarget.kind === "file") {
+      await moveFile(moveTarget.id, destinationFolderId);
+    } else {
+      await moveFolder(moveTarget.id, destinationFolderId);
+    }
+    if (searchResults) refreshSearch();
+    else await load();
   }
 
   function handleNavigate(folderId) {
     setSearch("");
+    setSearchResults(null);
     setCurrentFolderId(folderId);
   }
 
   function handleOpenFolder(folderId) {
     setSearch("");
+    setSearchResults(null);
     setCurrentFolderId(folderId);
   }
 
@@ -502,21 +761,35 @@ export default function Storage() {
     ? Math.round((data.usage.usedBytes / data.usage.totalBytes) * 100)
     : 0;
 
+  const isSearching = searchResults !== null;
+  const displayFolders = isSearching ? searchResults.folders : data.folders;
+  const displayFiles = isSearching ? searchResults.files : data.files;
+
   return (
     <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={handleFilesSelected}
-      />
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFilesSelected} />
 
       <NewFolderModal
         open={folderModalOpen}
         onClose={() => setFolderModalOpen(false)}
         onCreated={load}
         parentId={currentFolderId}
+      />
+
+      <RenameModal
+        open={!!renameTarget}
+        kind={renameTarget?.kind}
+        currentName={renameTarget?.name}
+        onClose={() => setRenameTarget(null)}
+        onSave={handleRenameSave}
+      />
+
+      <MoveItemModal
+        open={!!moveTarget}
+        itemName={moveTarget?.name}
+        excludeFolderId={moveTarget?.kind === "folder" ? moveTarget.id : null}
+        onClose={() => setMoveTarget(null)}
+        onMove={handleMoveConfirm}
       />
 
       <StorageHeader
@@ -533,27 +806,35 @@ export default function Storage() {
       )}
 
       <MyStorageCard
-        folders={data.folders}
-        files={data.files}
-        search={search}
+        folders={displayFolders}
+        files={displayFiles}
+        isSearching={isSearching}
+        searchQuery={search.trim()}
         crumbs={data.breadcrumbs}
         onNavigate={handleNavigate}
         onOpenFolder={handleOpenFolder}
         onUploadClick={handleUploadClick}
         onNewFolder={handleNewFolder}
-        onRefresh={() => load()}
+        onRefresh={() => (isSearching ? refreshSearch() : load())}
+        onViewFile={handleViewFile}
+        onDownloadFile={handleDownloadFile}
+        onRenameFile={handleRenameFile}
+        onMoveFile={handleMoveFile}
         onDeleteFile={handleDeleteFile}
+        onRenameFolder={handleRenameFolder}
+        onMoveFolder={handleMoveFolder}
         onDeleteFolder={handleDeleteFolder}
       />
 
-      <div className="flex flex-col lg:flex-row gap-5">
-        <HowItWorksCard />
-        <SupportedFilesCard />
-      </div>
+      {!isSearching && (
+        <div className="flex flex-col lg:flex-row gap-5">
+          <HowItWorksCard />
+          <SupportedFilesCard />
+        </div>
+      )}
 
       <p className="text-[11px] text-slate-400 text-center">
-        {formatBytes(data.usage.usedBytes)} of {formatBytes(data.usage.totalBytes)} used ·{" "}
-        {usedPercent}%
+        {formatBytes(data.usage.usedBytes)} of {formatBytes(data.usage.totalBytes)} used · {usedPercent}%
       </p>
     </>
   );

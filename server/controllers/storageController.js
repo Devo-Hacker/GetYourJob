@@ -103,6 +103,38 @@ export async function getStorageData(req, res) {
   }
 }
 
+// GET /api/storage/search?q=...
+// Searches folder and file names across the user's ENTIRE storage, not
+// just the current folder - unlike getStorageData, which is scoped to
+// one directory.
+export async function searchStorage(req, res) {
+  try {
+    const q = (req.query.q || "").trim();
+    if (!q) return res.json({ folders: [], files: [] });
+
+    const pattern = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+
+    const [folders, files] = await Promise.all([
+      Folder.find({ user: req.user._id, name: pattern }).sort({ name: 1 }),
+      StorageFile.find({ user: req.user._id, originalName: pattern }).sort({ updatedAt: -1 }),
+    ]);
+
+    res.json({
+      folders: folders.map((f) => ({ id: f._id, name: f.name, parent: f.parent })),
+      files: files.map((f) => ({
+        id: f._id,
+        name: f.originalName,
+        type: f.type,
+        sizeBytes: f.sizeBytes,
+        updatedAt: f.updatedAt,
+        folder: f.folder,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Search failed", error: err.message });
+  }
+}
+
 // POST /api/storage/upload  (multipart/form-data, field name: "files", optional field: "folderId")
 export async function uploadFiles(req, res) {
   try {
@@ -134,6 +166,66 @@ export async function uploadFiles(req, res) {
     }
     const status = err.status || 500;
     res.status(status).json({ message: err.message || "Upload failed" });
+  }
+}
+
+// GET /api/storage/:id/view?download=1 (optional)
+// Streams the file back with its real mime type. Content-Disposition
+// is "inline" by default so images/PDFs/text render right in the tab;
+// pass ?download=1 to force a save-as instead.
+export async function viewFile(req, res) {
+  try {
+    const file = await StorageFile.findOne({ _id: req.params.id, user: req.user._id });
+    if (!file) return res.status(404).json({ message: "File not found" });
+    if (!fs.existsSync(file.path)) {
+      return res.status(404).json({ message: "File is missing from storage" });
+    }
+
+    const disposition = req.query.download ? "attachment" : "inline";
+    res.setHeader("Content-Type", file.mimeType || "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `${disposition}; filename="${encodeURIComponent(file.originalName)}"`
+    );
+    fs.createReadStream(file.path).pipe(res);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load file", error: err.message });
+  }
+}
+
+// PATCH /api/storage/:id  { name?, folderId? }
+// Renames and/or moves a file. Either field is optional - only what's
+// sent gets changed. folderId: null moves it to the storage root.
+export async function updateFile(req, res) {
+  try {
+    const file = await StorageFile.findOne({ _id: req.params.id, user: req.user._id });
+    if (!file) return res.status(404).json({ message: "File not found" });
+
+    const { name, folderId } = req.body;
+
+    if (name !== undefined) {
+      if (!name.trim()) return res.status(400).json({ message: "File name can't be empty" });
+      file.originalName = name.trim();
+    }
+
+    if (folderId !== undefined) {
+      const { folderId: resolvedFolderId } = await resolveFolder(folderId, req.user._id);
+      file.folder = resolvedFolderId;
+    }
+
+    await file.save();
+    res.json({
+      file: {
+        id: file._id,
+        name: file.originalName,
+        type: file.type,
+        sizeBytes: file.sizeBytes,
+        updatedAt: file.updatedAt,
+      },
+    });
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ message: err.message || "Failed to update file" });
   }
 }
 
@@ -175,6 +267,21 @@ export async function createFolder(req, res) {
   }
 }
 
+// GET /api/storage/folders/tree
+// Every folder the user owns, flat (id + name + parent) - lets the
+// client build a "Move to..." picker without walking the tree one
+// getStorageData call at a time.
+export async function getFolderTree(req, res) {
+  try {
+    const folders = await Folder.find({ user: req.user._id }).sort({ name: 1 });
+    res.json({
+      folders: folders.map((f) => ({ id: f._id, name: f.name, parent: f.parent })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load folders", error: err.message });
+  }
+}
+
 // Recursively collects this folder's id plus every descendant folder id.
 async function collectFolderIds(rootId, userId) {
   const ids = [rootId];
@@ -189,6 +296,43 @@ async function collectFolderIds(rootId, userId) {
   }
 
   return ids;
+}
+
+// PATCH /api/storage/folders/:id  { name?, parentId? }
+// Renames and/or moves (reparents) a folder. Blocks moving a folder
+// into itself or into one of its own descendants, which would create
+// a cycle the tree could never recover from.
+export async function updateFolder(req, res) {
+  try {
+    const folder = await Folder.findOne({ _id: req.params.id, user: req.user._id });
+    if (!folder) return res.status(404).json({ message: "Folder not found" });
+
+    const { name, parentId } = req.body;
+
+    if (name !== undefined) {
+      if (!name.trim()) return res.status(400).json({ message: "Folder name can't be empty" });
+      folder.name = name.trim();
+    }
+
+    if (parentId !== undefined) {
+      const { folderId: resolvedParentId } = await resolveFolder(parentId, req.user._id);
+
+      if (resolvedParentId) {
+        const descendantIds = (await collectFolderIds(folder._id, req.user._id)).map(String);
+        if (descendantIds.includes(String(resolvedParentId))) {
+          return res.status(400).json({ message: "Can't move a folder into itself or one of its own subfolders" });
+        }
+      }
+
+      folder.parent = resolvedParentId;
+    }
+
+    await folder.save();
+    res.json({ folder: { id: folder._id, name: folder.name, parent: folder.parent } });
+  } catch (err) {
+    const status = err.status || 500;
+    res.status(status).json({ message: err.message || "Failed to update folder" });
+  }
 }
 
 // DELETE /api/storage/folders/:id  (cascades: deletes all nested folders + files)
